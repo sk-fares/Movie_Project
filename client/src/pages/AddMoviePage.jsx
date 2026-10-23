@@ -9,7 +9,8 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
-  Link as LinkIcon
+  Link2,
+  Cloud
 } from 'lucide-react';
 import { movieApi, formatBytes } from '../services/api';
 
@@ -41,7 +42,7 @@ export const AddMoviePage = () => {
   const [runtime, setRuntime] = useState('');
 
   // Video Source Toggle ('file' or 'url')
-  const [videoSourceType, setVideoSourceType] = useState('file');
+  const [videoSourceType, setVideoSourceType] = useState('url'); // Default to URL for easy Cloudinary pasting!
   const [directVideoUrl, setDirectVideoUrl] = useState('');
 
   // Poster Source Toggle ('file' or 'url')
@@ -125,12 +126,12 @@ export const AddMoviePage = () => {
     }
 
     if (videoSourceType === 'file' && !videoFile) {
-      setError('Please select a movie video file to upload, or switch to URL input.');
+      setError('Please select a movie video file to upload, or paste a Cloudinary/video URL.');
       return;
     }
 
     if (videoSourceType === 'url' && !directVideoUrl.trim()) {
-      setError('Please provide a direct CDN or streaming video URL.');
+      setError('Please paste your Cloudinary or direct video URL.');
       return;
     }
 
@@ -208,7 +209,7 @@ export const AddMoviePage = () => {
             Add Movie to Library
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            Upload files directly to cloud storage or attach a direct CDN streaming link.
+            Add movies by pasting a Cloudinary link or uploading video files directly.
           </p>
         </div>
 
@@ -241,7 +242,7 @@ export const AddMoviePage = () => {
             <input
               type="text"
               required
-              placeholder="e.g. Interstellar, The Dark Knight, Dune"
+              placeholder="e.g. Interstellar, Inception, Avengers"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="form-input"
@@ -331,56 +332,95 @@ export const AddMoviePage = () => {
             </div>
           )}
 
-          {/* Video Source Type Selection */}
-          <div className="form-group" style={{ marginTop: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <label className="form-label" style={{ marginBottom: 0 }}>
-                Movie Video <span style={{ color: 'var(--accent-primary)' }}>*</span>
-              </label>
-              <div style={{ display: 'flex', gap: '0.4rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setVideoSourceType('file')}
-                  style={{
-                    padding: '0.25rem 0.65rem',
-                    borderRadius: '4px',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    backgroundColor: videoSourceType === 'file' ? 'var(--accent-primary)' : 'rgba(255,255,255,0.08)',
-                    color: '#ffffff'
-                  }}
-                >
-                  Upload File
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVideoSourceType('url')}
-                  style={{
-                    padding: '0.25rem 0.65rem',
-                    borderRadius: '4px',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    backgroundColor: videoSourceType === 'url' ? 'var(--accent-primary)' : 'rgba(255,255,255,0.08)',
-                    color: '#ffffff'
-                  }}
-                >
-                  Direct CDN URL
-                </button>
-              </div>
+          {/* Prominent Video Source Selector Tabs */}
+          <div className="form-group" style={{ marginTop: '2rem' }}>
+            <label className="form-label" style={{ fontSize: '1rem', fontWeight: 700, color: '#ffffff', marginBottom: '0.75rem' }}>
+              Movie Video Source <span style={{ color: 'var(--accent-primary)' }}>*</span>
+            </label>
+
+            {/* Big Prominent Tabs */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '0.75rem',
+                marginBottom: '1rem'
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setVideoSourceType('url')}
+                style={{
+                  padding: '0.9rem 1rem',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.6rem',
+                  backgroundColor: videoSourceType === 'url' ? 'rgba(229, 9, 20, 0.2)' : '#222222',
+                  color: videoSourceType === 'url' ? '#ffffff' : 'var(--text-secondary)',
+                  border: `2px solid ${videoSourceType === 'url' ? 'var(--accent-primary)' : 'rgba(255,255,255,0.08)'}`,
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer'
+                }}
+              >
+                <Cloud size={18} color={videoSourceType === 'url' ? 'var(--accent-primary)' : 'currentColor'} />
+                <span>Cloudinary / Direct Video URL</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setVideoSourceType('file')}
+                style={{
+                  padding: '0.9rem 1rem',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.6rem',
+                  backgroundColor: videoSourceType === 'file' ? 'rgba(229, 9, 20, 0.2)' : '#222222',
+                  color: videoSourceType === 'file' ? '#ffffff' : 'var(--text-secondary)',
+                  border: `2px solid ${videoSourceType === 'file' ? 'var(--accent-primary)' : 'rgba(255,255,255,0.08)'}`,
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer'
+                }}
+              >
+                <Upload size={18} color={videoSourceType === 'file' ? 'var(--accent-primary)' : 'currentColor'} />
+                <span>Upload Video File</span>
+              </button>
             </div>
 
+            {/* Video Input Content */}
             {videoSourceType === 'url' ? (
-              <div style={{ position: 'relative' }}>
-                <LinkIcon size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <div
+                style={{
+                  backgroundColor: '#202020',
+                  padding: '1.5rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: '#ffffff', fontWeight: 600, fontSize: '0.9rem' }}>
+                  <Link2 size={16} color="var(--accent-primary)" />
+                  <span>Paste Cloudinary or Streaming URL:</span>
+                </div>
                 <input
                   type="url"
-                  placeholder="https://cdn.example.com/movies/video.mp4"
+                  required={videoSourceType === 'url'}
+                  placeholder="e.g. https://res.cloudinary.com/your-name/video/upload/v12345/movie.mp4"
                   value={directVideoUrl}
                   onChange={(e) => setDirectVideoUrl(e.target.value)}
                   className="form-input"
-                  style={{ paddingLeft: '2.5rem' }}
+                  style={{ fontSize: '0.95rem', padding: '0.85rem 1rem' }}
                   disabled={uploading}
                 />
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.6rem' }}>
+                  💡 Paste the link you copied from Cloudinary. It streams with zero server lag!
+                </p>
               </div>
             ) : (
               /* Drag & Drop Upload Box */
@@ -401,7 +441,7 @@ export const AddMoviePage = () => {
                   border: `2px dashed ${videoDragOver ? 'var(--accent-primary)' : '#3a3a3a'}`,
                   backgroundColor: videoDragOver ? 'rgba(229, 9, 20, 0.08)' : '#202020',
                   borderRadius: 'var(--radius-md)',
-                  padding: '1.75rem',
+                  padding: '2rem 1.5rem',
                   textAlign: 'center',
                   transition: 'all 0.2s ease',
                   position: 'relative'
@@ -485,10 +525,10 @@ export const AddMoviePage = () => {
             )}
           </div>
 
-          {/* Poster Source Type Selection */}
-          <div className="form-group" style={{ marginTop: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <label className="form-label" style={{ marginBottom: 0 }}>
+          {/* Poster Section with Toggle */}
+          <div className="form-group" style={{ marginTop: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <label className="form-label" style={{ fontSize: '1rem', fontWeight: 700, color: '#ffffff', marginBottom: 0 }}>
                 Cover Poster Image (Optional)
               </label>
               <div style={{ display: 'flex', gap: '0.4rem' }}>
@@ -518,17 +558,17 @@ export const AddMoviePage = () => {
                     color: '#ffffff'
                   }}
                 >
-                  Image URL
+                  Poster URL
                 </button>
               </div>
             </div>
 
             {posterSourceType === 'url' ? (
               <div style={{ position: 'relative' }}>
-                <LinkIcon size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <Link2 size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type="url"
-                  placeholder="https://images.unsplash.com/photo-xxx.jpg"
+                  placeholder="https://images.unsplash.com/... or poster URL"
                   value={directPosterUrl}
                   onChange={(e) => setDirectPosterUrl(e.target.value)}
                   className="form-input"
@@ -631,7 +671,7 @@ export const AddMoviePage = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffffff' }}>
                   <Loader2 size={16} className="spin" style={{ color: 'var(--accent-primary)' }} />
-                  Processing movie and uploading to storage...
+                  Saving and processing movie...
                 </span>
                 <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>{uploadProgress}%</span>
               </div>
