@@ -1,11 +1,11 @@
 import mongoose from 'mongoose';
 import dns from 'dns';
 
-// Ensure standard reliable DNS resolution for MongoDB Atlas SRV records
-try {
-  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
-} catch (dnsErr) {
-  // If platform restricts setting DNS servers, continue gracefully
+// Only set custom DNS fallback on Windows local dev to bypass ISP DNS quirks
+if (process.platform === 'win32') {
+  try {
+    dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+  } catch (dnsErr) {}
 }
 
 export const connectDB = async () => {
@@ -16,7 +16,11 @@ export const connectDB = async () => {
       process.env.MONGODB_URL ||
       'mongodb://127.0.0.1:27017/movielibrary';
 
-    const conn = await mongoose.connect(uri);
+    const conn = await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 10000,
+      family: 4 // Force IPv4 to prevent IPv6 TLS alert errors on cloud containers
+    });
+
     console.log(`[MongoDB] Connected successfully: ${conn.connection.host}/${conn.connection.name}`);
   } catch (error) {
     console.error(`[MongoDB] Connection error: ${error.message}`);
