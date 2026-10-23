@@ -4,7 +4,8 @@
   "description": "Personal Movie Library & Streaming Web App with Netflix-style dark UI",
   "private": true,
   "scripts": {
-    "build": "npm run build --prefix client",
+    "start": "node server/server.js",
+    "build": "npm install --prefix client && npm run build --prefix client && npm install --prefix server",
     "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
     "dev:server": "npm run dev --prefix server",
     "dev:client": "npm run dev --prefix client",
