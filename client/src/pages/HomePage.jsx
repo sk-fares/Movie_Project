@@ -4,7 +4,8 @@ import { FilterBar } from '../components/FilterBar';
 import { MovieGrid } from '../components/MovieGrid';
 import { MovieCard } from '../components/MovieCard';
 import { ConfirmModal } from '../components/ConfirmModal';
-import { movieApi } from '../services/api';
+import { AdminBannersModal } from '../components/AdminBannersModal';
+import { movieApi, bannerApi } from '../services/api';
 import { getWatchlist, getAllWatchProgress } from '../services/storage';
 import { useAuth } from '../context/AuthContext';
 import { Layers, PlayCircle, Bookmark } from 'lucide-react';
@@ -12,6 +13,8 @@ import { Layers, PlayCircle, Bookmark } from 'lucide-react';
 export const HomePage = () => {
   const { user, isOwner } = useAuth();
   const [movies, setMovies] = useState([]);
+  const [banners, setBanners] = useState([]);
+  const [adminBannersOpen, setAdminBannersOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -43,8 +46,21 @@ export const HomePage = () => {
     }
   };
 
+  // Fetch active carousel banners
+  const fetchBanners = async () => {
+    try {
+      const res = await bannerApi.getAll();
+      if (res.success) {
+        setBanners(res.data);
+      }
+    } catch (err) {
+      console.warn('Could not load hero banners:', err);
+    }
+  };
+
   useEffect(() => {
     fetchMovies();
+    fetchBanners();
   }, []);
 
   const handleWatchlistChange = () => {
@@ -169,8 +185,12 @@ export const HomePage = () => {
 
   return (
     <div>
-      {/* Featured Cinematic Hero Section */}
-      <HeroBanner movie={featuredMovie} />
+      {/* Featured Cinematic Hero Section (Auto-sliding Carousel) */}
+      <HeroBanner
+        banners={banners}
+        movies={movies}
+        onOpenAdmin={() => setAdminBannersOpen(true)}
+      />
 
       {/* Main Content Area */}
       <div id="movies" className="container" style={{ paddingTop: '2.5rem', paddingBottom: '4rem' }}>
@@ -292,6 +312,13 @@ export const HomePage = () => {
         onConfirm={handleDeleteConfirm}
         onCancel={() => setMovieToDelete(null)}
         loading={isDeleting}
+      />
+
+      {/* Admin Hero Carousel Manager Modal */}
+      <AdminBannersModal
+        isOpen={adminBannersOpen}
+        onClose={() => setAdminBannersOpen(false)}
+        onBannersUpdated={fetchBanners}
       />
     </div>
   );

@@ -61,6 +61,38 @@ export const authApi = {
   }
 };
 
+export const bannerApi = {
+  // Get active banners for landing page hero carousel (Public)
+  getAll: async () => {
+    const response = await axios.get(`${API_BASE_URL}/banners`);
+    return response.data;
+  },
+
+  // Get all banners for Admin Carousel Manager (Owner only)
+  getAdminAll: async () => {
+    const response = await axios.get(`${API_BASE_URL}/banners/all`);
+    return response.data;
+  },
+
+  // Create a new hero banner slide (Owner only)
+  create: async (data) => {
+    const response = await axios.post(`${API_BASE_URL}/banners`, data);
+    return response.data;
+  },
+
+  // Update an existing banner slide (Owner only)
+  update: async (id, data) => {
+    const response = await axios.put(`${API_BASE_URL}/banners/${id}`, data);
+    return response.data;
+  },
+
+  // Delete a banner slide (Owner only)
+  delete: async (id) => {
+    const response = await axios.delete(`${API_BASE_URL}/banners/${id}`);
+    return response.data;
+  }
+};
+
 export const movieApi = {
   // Fetch all movies with optional query parameters (search, genre, sort)
   getAll: async (params = {}) => {

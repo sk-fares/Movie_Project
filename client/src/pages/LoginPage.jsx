@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Clapperboard, Lock, User, Eye, EyeOff, AlertCircle, ShieldCheck, Sparkles } from 'lucide-react';
+import { Clapperboard, Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 export const LoginPage = () => {
   const { login } = useAuth();
@@ -34,12 +34,6 @@ export const LoginPage = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillOwnerCredentials = () => {
-    setIdentifier('owner');
-    setPassword('Owner@CineVault2026');
-    setError(null);
   };
 
   return (
@@ -242,42 +236,6 @@ export const LoginPage = () => {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
-        {/* Special Owner Account Quick-Fill Card */}
-        <div
-          style={{
-            marginTop: '1.75rem',
-            padding: '1rem',
-            backgroundColor: 'rgba(229, 9, 20, 0.08)',
-            border: '1px solid rgba(229, 9, 20, 0.3)',
-            borderRadius: 'var(--radius-md)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#ff7b7b', fontSize: '0.85rem', fontWeight: 700 }}>
-              <ShieldCheck size={16} />
-              <span>Owner Account</span>
-            </div>
-            <button
-              type="button"
-              onClick={fillOwnerCredentials}
-              className="btn btn-outline"
-              style={{
-                padding: '0.2rem 0.55rem',
-                fontSize: '0.75rem',
-                borderColor: 'rgba(229, 9, 20, 0.4)',
-                color: '#ffffff'
-              }}
-              title="Auto-fill default Owner credentials"
-            >
-              <Sparkles size={12} style={{ marginRight: '3px' }} />
-              Auto-fill Owner
-            </button>
-          </div>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
-            Only the owner can upload, edit, and delete movies. Viewers can watch and download.
-          </p>
-        </div>
 
         {/* Sign Up Redirect */}
         <div style={{ textAlign: 'center', marginTop: '1.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>

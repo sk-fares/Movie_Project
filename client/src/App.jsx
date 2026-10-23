@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { StatsModal } from './components/StatsModal';
+import { AdminBannersModal } from './components/AdminBannersModal';
 import { ToastProvider } from './components/Toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { HomePage } from './pages/HomePage';
@@ -23,6 +24,7 @@ const OwnerRoute = ({ children }) => {
 
 export function App() {
   const [statsOpen, setStatsOpen] = useState(false);
+  const [carouselOpen, setCarouselOpen] = useState(false);
   const location = useLocation();
 
   // Don't render navigation bar or footer in theater mode or auth pages
@@ -34,7 +36,12 @@ export function App() {
     <AuthProvider>
       <ToastProvider>
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-          {!hideChrome && <Navbar onOpenStats={() => setStatsOpen(true)} />}
+          {!hideChrome && (
+            <Navbar
+              onOpenStats={() => setStatsOpen(true)}
+              onOpenCarouselManager={() => setCarouselOpen(true)}
+            />
+          )}
 
           <main style={{ flex: 1 }}>
             <Routes>
@@ -66,6 +73,9 @@ export function App() {
 
           {/* Global Library Statistics Modal */}
           <StatsModal isOpen={statsOpen} onClose={() => setStatsOpen(false)} />
+
+          {/* Global Hero Carousel Manager Modal (Owner Only) */}
+          <AdminBannersModal isOpen={carouselOpen} onClose={() => setCarouselOpen(false)} />
 
           {/* Footer */}
           {!hideChrome && (

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Clapperboard, Plus, BarChart2, Smartphone, Menu, X, LogIn, LogOut, Shield, User as UserIcon } from 'lucide-react';
+import { Clapperboard, Plus, BarChart2, Smartphone, Menu, X, LogIn, LogOut, Shield, User as UserIcon, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export const Navbar = ({ onOpenStats }) => {
+export const Navbar = ({ onOpenStats, onOpenCarouselManager }) => {
   const { user, isOwner, isAuthenticated, logout } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -276,6 +276,36 @@ export const Navbar = ({ onOpenStats }) => {
                     </div>
                   </div>
 
+                  {isOwner && (
+                    <button
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        if (onOpenCarouselManager) onOpenCarouselManager();
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        color: '#ffffff',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        borderRadius: 'var(--radius-sm)',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        marginBottom: '0.25rem'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <Sparkles size={16} color="var(--accent-primary)" />
+                      <span>Carousel Manager</span>
+                    </button>
+                  )}
+
                   <button
                     onClick={handleLogout}
                     style={{
@@ -365,6 +395,29 @@ export const Navbar = ({ onOpenStats }) => {
             >
               <Plus size={18} /> Add Movie (Owner)
             </Link>
+          )}
+
+          {isOwner && (
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                if (onOpenCarouselManager) onOpenCarouselManager();
+              }}
+              style={{
+                color: '#ff9999',
+                fontSize: '1rem',
+                fontWeight: 600,
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <Sparkles size={16} /> Carousel Manager
+            </button>
           )}
 
           <button
