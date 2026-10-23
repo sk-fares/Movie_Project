@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Server uploads (keep directory structure with .gitkeep)
+server/uploads/videos/*
+!server/uploads/videos/.gitkeep
+server/uploads/posters/*
+!server/uploads/posters/.gitkeep
+
+# Build and production output
+dist/
+build/
+*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Editor and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

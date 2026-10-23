@@ -1,0 +1,543 @@
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import {
+  Upload,
+  Film,
+  Image as ImageIcon,
+  ArrowLeft,
+  X,
+  CheckCircle,
+  AlertCircle,
+  Loader2
+} from 'lucide-react';
+import { movieApi, formatBytes } from '../services/api';
+
+const POPULAR_GENRES = [
+  'Action',
+  'Sci-Fi',
+  'Drama',
+  'Comedy',
+  'Horror',
+  'Thriller',
+  'Documentary',
+  'Adventure',
+  'Animation',
+  'Fantasy',
+  'Crime',
+  'Mystery',
+  'Romance'
+];
+
+export const AddMoviePage = () => {
+  const navigate = useNavigate();
+
+  // Form State
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [releaseYear, setReleaseYear] = useState('');
+  const [genre, setGenre] = useState('Action');
+  const [customGenre, setCustomGenre] = useState('');
+  const [runtime, setRuntime] = useState('');
+
+  // Files State
+  const [posterFile, setPosterFile] = useState(null);
+  const [posterPreview, setPosterPreview] = useState(null);
+  const [videoFile, setVideoFile] = useState(null);
+
+  // Upload Progress & UI State
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [error, setError] = useState(null);
+
+  // Handle Poster Selection & Preview
+  const handlePosterChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file (JPG, PNG, WEBP) for the poster.');
+      return;
+    }
+
+    setPosterFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPosterPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+    setError(null);
+  };
+
+  const removePoster = () => {
+    setPosterFile(null);
+    setPosterPreview(null);
+  };
+
+  // Handle Video File Selection
+  const handleVideoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const allowedExtensions = ['.mp4', '.mkv', '.webm', '.mov', '.avi'];
+    const hasValidExt = allowedExtensions.some((ext) => file.name.toLowerCase().endsWith(ext));
+
+    if (!hasValidExt && !file.type.startsWith('video/')) {
+      setError('Please select a valid movie video file (MP4, MKV, WEBM, MOV, AVI).');
+      return;
+    }
+
+    setVideoFile(file);
+    setError(null);
+
+    // Optional: Auto-populate title if title field is empty
+    if (!title.trim()) {
+      const cleanName = file.name
+        .replace(/\.[^/.]+$/, '') // remove extension
+        .replace(/[._-]/g, ' ') // replace dots/underscores with spaces
+        .replace(/\b\w/g, (c) => c.toUpperCase()); // title case
+      setTitle(cleanName);
+    }
+  };
+
+  const removeVideo = () => {
+    setVideoFile(null);
+  };
+
+  // Submit Handler
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!title.trim()) {
+      setError('Movie title is required.');
+      return;
+    }
+
+    if (!videoFile) {
+      setError('Please select a movie video file to upload.');
+      return;
+    }
+
+    const finalGenre = genre === 'Other' ? customGenre.trim() || 'General' : genre;
+
+    const formData = new FormData();
+    formData.append('title', title.trim());
+    formData.append('description', description.trim());
+    if (releaseYear) formData.append('releaseYear', releaseYear);
+    formData.append('genre', finalGenre);
+    if (runtime) formData.append('runtime', runtime);
+
+    if (posterFile) {
+      formData.append('poster', posterFile);
+    }
+    formData.append('video', videoFile);
+
+    try {
+      setUploading(true);
+      setError(null);
+      setUploadProgress(0);
+
+      const res = await movieApi.create(formData, (progress) => {
+        setUploadProgress(progress);
+      });
+
+      if (res.success && res.data) {
+        navigate(`/movie/${res.data._id}`);
+      } else {
+        navigate('/');
+      }
+    } catch (err) {
+      console.error('Upload failed:', err);
+      setError(
+        err.response?.data?.error || err.message || 'Failed to upload movie. Check console or file size.'
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="container" style={{ paddingTop: '100px', paddingBottom: '5rem', maxWidth: '850px' }}>
+      {/* Back button */}
+      <Link to="/" className="btn btn-outline" style={{ marginBottom: '1.5rem', padding: '0.5rem 1rem' }}>
+        <ArrowLeft size={16} />
+        Back to Library
+      </Link>
+
+      <div
+        style={{
+          backgroundColor: '#1b1b1b',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-subtle)',
+          padding: '2.5rem',
+          boxShadow: 'var(--shadow-lg)'
+        }}
+      >
+        <div style={{ marginBottom: '2rem' }}>
+          <h1
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '1.8rem',
+              fontWeight: 800,
+              letterSpacing: '-0.5px',
+              marginBottom: '0.4rem'
+            }}
+          >
+            Add Movie to Library
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+            Store and catalog your personal movie file and custom poster art.
+          </p>
+        </div>
+
+        {/* Error Alert */}
+        {error && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '1rem',
+              backgroundColor: 'rgba(229, 9, 20, 0.15)',
+              border: '1px solid rgba(229, 9, 20, 0.4)',
+              borderRadius: 'var(--radius-md)',
+              color: '#ff6b6b',
+              marginBottom: '1.75rem',
+              fontSize: '0.92rem'
+            }}
+          >
+            <AlertCircle size={20} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          {/* Movie Title */}
+          <div className="form-group">
+            <label className="form-label">
+              Movie Title <span style={{ color: 'var(--accent-primary)' }}>*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Inception, The Matrix, Blade Runner 2049"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="form-input"
+              disabled={uploading}
+            />
+          </div>
+
+          {/* Description */}
+          <div className="form-group">
+            <label className="form-label">Synopsis / Description</label>
+            <textarea
+              placeholder="Brief summary of the plot, director notes, or personal impressions..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="form-textarea"
+              rows={3}
+              disabled={uploading}
+            />
+          </div>
+
+          {/* Metadata Row: Year, Genre, Runtime */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '1.25rem',
+              marginBottom: '1.5rem'
+            }}
+          >
+            {/* Release Year */}
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Release Year</label>
+              <input
+                type="number"
+                min="1888"
+                max="2100"
+                placeholder="e.g. 2023"
+                value={releaseYear}
+                onChange={(e) => setReleaseYear(e.target.value)}
+                className="form-input"
+                disabled={uploading}
+              />
+            </div>
+
+            {/* Genre */}
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Genre</label>
+              <select
+                value={genre}
+                onChange={(e) => setGenre(e.target.value)}
+                className="form-select"
+                disabled={uploading}
+              >
+                {POPULAR_GENRES.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+                <option value="Other">Other / Custom</option>
+              </select>
+            </div>
+
+            {/* Runtime */}
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Runtime (minutes)</label>
+              <input
+                type="number"
+                min="1"
+                max="1000"
+                placeholder="e.g. 148"
+                value={runtime}
+                onChange={(e) => setRuntime(e.target.value)}
+                className="form-input"
+                disabled={uploading}
+              />
+            </div>
+          </div>
+
+          {/* Custom Genre Input if 'Other' selected */}
+          {genre === 'Other' && (
+            <div className="form-group">
+              <label className="form-label">Custom Genre Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Cyberpunk, Psychological Thriller"
+                value={customGenre}
+                onChange={(e) => setCustomGenre(e.target.value)}
+                className="form-input"
+                disabled={uploading}
+              />
+            </div>
+          )}
+
+          {/* Video File Upload Box */}
+          <div className="form-group" style={{ marginTop: '1.5rem' }}>
+            <label className="form-label">
+              Movie Video File <span style={{ color: 'var(--accent-primary)' }}>*</span>
+            </label>
+            <div
+              style={{
+                border: '2px dashed #3a3a3a',
+                borderRadius: 'var(--radius-md)',
+                padding: '1.75rem',
+                backgroundColor: '#202020',
+                textAlign: 'center',
+                position: 'relative'
+              }}
+            >
+              {videoFile ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.8rem 1rem',
+                    backgroundColor: '#282828',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textAlign: 'left' }}>
+                    <Film size={26} color="var(--accent-primary)" />
+                    <div>
+                      <div style={{ fontWeight: 600, color: '#ffffff', wordBreak: 'break-all' }}>
+                        {videoFile.name}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        {formatBytes(videoFile.size)} • {videoFile.type || 'video'}
+                      </div>
+                    </div>
+                  </div>
+                  {!uploading && (
+                    <button
+                      type="button"
+                      onClick={removeVideo}
+                      className="btn-icon"
+                      title="Remove video file"
+                      style={{ color: '#ff6b6b' }}
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <label
+                  style={{
+                    cursor: uploading ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.6rem'
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(229, 9, 20, 0.15)',
+                      color: 'var(--accent-primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <Upload size={22} />
+                  </div>
+                  <span style={{ fontWeight: 600, color: '#ffffff' }}>Choose Movie Video File</span>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                    Supported formats: MP4, MKV, WEBM, MOV, AVI
+                  </span>
+                  <input
+                    type="file"
+                    accept="video/*,.mkv,.mp4,.webm,.mov,.avi"
+                    onChange={handleVideoChange}
+                    style={{ display: 'none' }}
+                    disabled={uploading}
+                  />
+                </label>
+              )}
+            </div>
+          </div>
+
+          {/* Poster Image Upload Box */}
+          <div className="form-group" style={{ marginTop: '1.5rem' }}>
+            <label className="form-label">Cover Poster Image (Optional)</label>
+            <div
+              style={{
+                display: 'flex',
+                gap: '1.5rem',
+                alignItems: 'flex-start',
+                flexWrap: 'wrap'
+              }}
+            >
+              {/* Preview Thumbnail */}
+              {posterPreview && (
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '120px',
+                    aspectRatio: '2/3',
+                    borderRadius: 'var(--radius-sm)',
+                    overflow: 'hidden',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    flexShrink: 0
+                  }}
+                >
+                  <img src={posterPreview} alt="Poster preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {!uploading && (
+                    <button
+                      type="button"
+                      onClick={removePoster}
+                      style={{
+                        position: 'absolute',
+                        top: '4px',
+                        right: '4px',
+                        background: 'rgba(0, 0, 0, 0.7)',
+                        borderRadius: '50%',
+                        padding: '4px',
+                        color: '#ff6b6b'
+                      }}
+                      title="Remove poster"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Upload Action */}
+              <div
+                style={{
+                  flex: 1,
+                  minWidth: '220px',
+                  border: '2px dashed #3a3a3a',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '1.5rem',
+                  backgroundColor: '#202020',
+                  textAlign: 'center'
+                }}
+              >
+                <label
+                  style={{
+                    cursor: uploading ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <ImageIcon size={28} color="var(--text-muted)" />
+                  <span style={{ fontWeight: 500, fontSize: '0.9rem', color: '#ffffff' }}>
+                    {posterPreview ? 'Change Poster Image' : 'Select Poster Image'}
+                  </span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    JPG, PNG, WEBP (Standard movie poster 2:3 ratio recommended)
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handlePosterChange}
+                    style={{ display: 'none' }}
+                    disabled={uploading}
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Upload Progress Bar */}
+          {uploading && (
+            <div style={{ marginTop: '2rem', padding: '1.25rem', backgroundColor: '#262626', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffffff' }}>
+                  <Loader2 size={16} className="spin" style={{ color: 'var(--accent-primary)' }} />
+                  Uploading and processing movie files...
+                </span>
+                <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>{uploadProgress}%</span>
+              </div>
+              <div style={{ height: '8px', backgroundColor: '#3a3a3a', borderRadius: '4px', overflow: 'hidden' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${uploadProgress}%`,
+                    backgroundColor: 'var(--accent-primary)',
+                    transition: 'width 0.2s ease'
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2.5rem' }}>
+            <Link to="/" className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem' }}>
+              Cancel
+            </Link>
+            <button
+              type="submit"
+              disabled={uploading}
+              className="btn btn-primary"
+              style={{ padding: '0.75rem 2rem', fontSize: '1rem' }}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 size={18} className="spin" />
+                  Saving Movie...
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={18} />
+                  Add Movie
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
