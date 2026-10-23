@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: cinevault-movie-app
+    env: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MAX_FILE_SIZE_MB
+        value: "5120"
+      - key: MONGO_URI
+        sync: false
