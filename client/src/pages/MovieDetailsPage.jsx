@@ -16,13 +16,14 @@ import {
   Sparkles
 } from 'lucide-react';
 import { movieApi, getPosterUrl, getDownloadUrl, formatBytes, formatMinutes } from '../services/api';
-import { isInWatchlist, toggleWatchlist } from '../services/storage';
+import { useAuth } from '../context/AuthContext';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { MovieCard } from '../components/MovieCard';
 
 export const MovieDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isOwner, isMovieInWatchlist, toggleUserWatchlist } = useAuth();
 
   const [movie, setMovie] = useState(null);
   const [allMovies, setAllMovies] = useState([]);
@@ -46,7 +47,7 @@ export const MovieDetailsPage = () => {
 
         if (res.success) {
           setMovie(res.data);
-          setInWatchlist(isInWatchlist(res.data._id));
+          setInWatchlist(isMovieInWatchlist(res.data._id));
         }
         if (allRes.success) {
           setAllMovies(allRes.data);
@@ -60,11 +61,11 @@ export const MovieDetailsPage = () => {
     };
 
     fetchMovieAndRelated();
-  }, [id]);
+  }, [id, isMovieInWatchlist]);
 
-  const handleWatchlistToggle = () => {
+  const handleWatchlistToggle = async () => {
     if (!movie) return;
-    const isAdded = toggleWatchlist(movie._id);
+    const isAdded = await toggleUserWatchlist(movie._id);
     setInWatchlist(isAdded);
   };
 
@@ -277,24 +278,28 @@ export const MovieDetailsPage = () => {
                 Download
               </a>
 
-              <Link
-                to={`/edit/${movie._id}`}
-                className="btn btn-outline"
-                style={{ padding: '0.85rem 1.25rem' }}
-                title="Edit Movie Details"
-              >
-                <Edit size={18} />
-              </Link>
+              {isOwner && (
+                <>
+                  <Link
+                    to={`/edit/${movie._id}`}
+                    className="btn btn-outline"
+                    style={{ padding: '0.85rem 1.25rem' }}
+                    title="Edit Movie Details (Owner)"
+                  >
+                    <Edit size={18} />
+                  </Link>
 
-              <button
-                type="button"
-                onClick={() => setShowDeleteModal(true)}
-                className="btn btn-outline"
-                style={{ padding: '0.85rem 1.25rem', color: '#ff6b6b', borderColor: 'rgba(255, 107, 107, 0.3)' }}
-                title="Delete Movie"
-              >
-                <Trash2 size={18} />
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteModal(true)}
+                    className="btn btn-outline"
+                    style={{ padding: '0.85rem 1.25rem', color: '#ff6b6b', borderColor: 'rgba(255, 107, 107, 0.3)' }}
+                    title="Delete Movie (Owner)"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Synopsis */}

@@ -6,9 +6,11 @@ import { MovieCard } from '../components/MovieCard';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { movieApi } from '../services/api';
 import { getWatchlist, getAllWatchProgress } from '../services/storage';
+import { useAuth } from '../context/AuthContext';
 import { Layers, PlayCircle, Bookmark } from 'lucide-react';
 
 export const HomePage = () => {
+  const { user, isOwner } = useAuth();
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,7 +20,7 @@ export const HomePage = () => {
   const [selectedGenre, setSelectedGenre] = useState('All');
   const [showOnlyWatchlist, setShowOnlyWatchlist] = useState(false);
   const [sortBy, setSortBy] = useState('newest');
-  const [watchlist, setWatchlist] = useState(() => getWatchlist());
+  const [localWatchlist, setLocalWatchlist] = useState(() => getWatchlist());
 
   // Deletion modal state
   const [movieToDelete, setMovieToDelete] = useState(null);
@@ -46,8 +48,16 @@ export const HomePage = () => {
   }, []);
 
   const handleWatchlistChange = () => {
-    setWatchlist(getWatchlist());
+    setLocalWatchlist(getWatchlist());
   };
+
+  // Active watchlist IDs (from logged-in user profile, or fallback to local storage)
+  const activeWatchlist = useMemo(() => {
+    if (user && Array.isArray(user.watchlist)) {
+      return user.watchlist.map((item) => (typeof item === 'object' ? item._id : item));
+    }
+    return localWatchlist;
+  }, [user, localWatchlist]);
 
   // Compute unique genres across collection
   const availableGenres = useMemo(() => {
@@ -65,12 +75,20 @@ export const HomePage = () => {
 
   // Movies that have in-progress watching
   const continueWatchingMovies = useMemo(() => {
+    if (user && Array.isArray(user.watchProgress) && user.watchProgress.length > 0) {
+      return movies.filter((m) => {
+        const p = user.watchProgress.find(
+          (item) => (typeof item.movieId === 'object' ? item.movieId._id === m._id : item.movieId === m._id)
+        );
+        return p && p.percentage > 0 && p.percentage < 95;
+      });
+    }
     const progressStore = getAllWatchProgress();
     return movies.filter((m) => {
       const p = progressStore[m._id];
       return p && p.percentage > 0 && p.percentage < 95;
     });
-  }, [movies]);
+  }, [movies, user]);
 
   // Frontend search, filter, and sorting
   const filteredMovies = useMemo(() => {
@@ -78,7 +96,7 @@ export const HomePage = () => {
 
     // Watchlist filter
     if (showOnlyWatchlist) {
-      result = result.filter((m) => watchlist.includes(m._id));
+      result = result.filter((m) => activeWatchlist.includes(m._id));
     }
 
     // Search query filter (title, description, genre)
@@ -123,7 +141,7 @@ export const HomePage = () => {
     });
 
     return result;
-  }, [movies, searchQuery, selectedGenre, sortBy, showOnlyWatchlist, watchlist]);
+  }, [movies, searchQuery, selectedGenre, sortBy, showOnlyWatchlist, activeWatchlist]);
 
   const featuredMovie = movies.length > 0 ? movies[0] : null;
 
@@ -249,7 +267,7 @@ export const HomePage = () => {
           onGenreChange={setSelectedGenre}
           showOnlyWatchlist={showOnlyWatchlist}
           onToggleWatchlistFilter={() => setShowOnlyWatchlist(!showOnlyWatchlist)}
-          watchlistCount={watchlist.length}
+          watchlistCount={activeWatchlist.length}
           sortBy={sortBy}
           onSortChange={setSortBy}
           availableGenres={availableGenres}
@@ -262,7 +280,7 @@ export const HomePage = () => {
           loading={loading}
           isFiltered={isFiltered}
           onResetFilters={handleResetFilters}
-          onDelete={(m) => setMovieToDelete(m)}
+          onDelete={isOwner ? (m) => setMovieToDelete(m) : undefined}
         />
       </div>
 

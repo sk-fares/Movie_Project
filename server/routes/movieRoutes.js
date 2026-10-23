@@ -10,6 +10,7 @@ import {
   getLibraryStats
 } from '../controllers/movieController.js';
 import { uploadMovieMedia } from '../middleware/upload.js';
+import { verifyToken, requireOwner } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -17,15 +18,17 @@ const router = express.Router();
 router.get('/stats/overview', getLibraryStats);
 
 // Movie collection routes
+// Public can browse movies, only Owner can add new movies
 router.route('/')
   .get(getAllMovies)
-  .post(uploadMovieMedia, createMovie);
+  .post(verifyToken, requireOwner, uploadMovieMedia, createMovie);
 
 // Single movie routes
+// Public can view movie details, only Owner can edit or delete
 router.route('/:id')
   .get(getMovieById)
-  .put(uploadMovieMedia, updateMovie)
-  .delete(deleteMovie);
+  .put(verifyToken, requireOwner, uploadMovieMedia, updateMovie)
+  .delete(verifyToken, requireOwner, deleteMovie);
 
 // Streaming and Download routes
 router.get('/:id/stream', streamMovie);

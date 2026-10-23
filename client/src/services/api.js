@@ -4,6 +4,63 @@ import axios from 'axios';
 const BACKEND_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : '';
 const API_BASE_URL = `${BACKEND_BASE}/api`;
 
+// Automatically attach stored JWT token to all API requests
+axios.interceptors.request.use(
+  (config) => {
+    try {
+      const token = localStorage.getItem('cinevault_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch {}
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+export const authApi = {
+  // Register a new Viewer
+  register: async (username, email, password) => {
+    const response = await axios.post(`${API_BASE_URL}/auth/register`, {
+      username,
+      email,
+      password
+    });
+    return response.data;
+  },
+
+  // Log in with username/email & password
+  login: async (identifier, password) => {
+    const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+      identifier,
+      password
+    });
+    return response.data;
+  },
+
+  // Fetch current user session
+  getMe: async () => {
+    const response = await axios.get(`${API_BASE_URL}/auth/me`);
+    return response.data;
+  },
+
+  // Save personal watch progress to MongoDB profile
+  updateProgress: async (movieId, currentTime, duration) => {
+    const response = await axios.post(`${API_BASE_URL}/auth/progress`, {
+      movieId,
+      currentTime,
+      duration
+    });
+    return response.data;
+  },
+
+  // Toggle movie in personal watchlist
+  toggleWatchlist: async (movieId) => {
+    const response = await axios.post(`${API_BASE_URL}/auth/watchlist/${movieId}`);
+    return response.data;
+  }
+};
+
 export const movieApi = {
   // Fetch all movies with optional query parameters (search, genre, sort)
   getAll: async (params = {}) => {

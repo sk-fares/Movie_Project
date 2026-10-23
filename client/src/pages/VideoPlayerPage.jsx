@@ -18,13 +18,15 @@ import {
   Sparkles
 } from 'lucide-react';
 import { movieApi, getStreamUrl, getDownloadUrl } from '../services/api';
-import { saveWatchProgress, getWatchProgress, clearWatchProgress } from '../services/storage';
+import { clearWatchProgress } from '../services/storage';
+import { useAuth } from '../context/AuthContext';
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 export const VideoPlayerPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { getMovieProgress, updateWatchProgress } = useAuth();
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const hideControlsTimeout = useRef(null);
@@ -58,7 +60,7 @@ export const VideoPlayerPage = () => {
           setMovie(res.data);
           
           // Check saved watch progress
-          const saved = getWatchProgress(id);
+          const saved = getMovieProgress(id);
           if (saved && saved.currentTime > 10 && saved.currentTime < (saved.duration - 15)) {
             setResumePrompt(saved.currentTime);
           }
@@ -72,23 +74,23 @@ export const VideoPlayerPage = () => {
     };
 
     fetchMovie();
-  }, [id]);
+  }, [id, getMovieProgress]);
 
   // Periodic progress saving
   useEffect(() => {
     const interval = setInterval(() => {
       if (videoRef.current && !videoRef.current.paused && videoRef.current.duration) {
-        saveWatchProgress(id, videoRef.current.currentTime, videoRef.current.duration);
+        updateWatchProgress(id, videoRef.current.currentTime, videoRef.current.duration);
       }
     }, 4000);
 
     return () => {
       clearInterval(interval);
       if (videoRef.current && videoRef.current.duration) {
-        saveWatchProgress(id, videoRef.current.currentTime, videoRef.current.duration);
+        updateWatchProgress(id, videoRef.current.currentTime, videoRef.current.duration);
       }
     };
-  }, [id]);
+  }, [id, updateWatchProgress]);
 
   // Fullscreen change listener
   useEffect(() => {
@@ -176,7 +178,7 @@ export const VideoPlayerPage = () => {
     } else {
       video.pause();
       setIsPlaying(false);
-      saveWatchProgress(id, video.currentTime, video.duration);
+      updateWatchProgress(id, video.currentTime, video.duration);
     }
   };
 

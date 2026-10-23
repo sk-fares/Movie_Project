@@ -8,6 +8,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { connectDB } from './config/db.js';
 import movieRoutes from './routes/movieRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import { seedDefaultOwner } from './controllers/authController.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { POSTER_DIR, ensureUploadDirs } from './utils/fileHelper.js';
 
@@ -39,7 +41,8 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Mount movie API routes
+// Mount movie and authentication API routes
+app.use('/api/auth', authRoutes);
 app.use('/api/movies', movieRoutes);
 
 // In production or when client/dist exists, serve built React frontend
@@ -71,6 +74,7 @@ app.use(errorHandler);
 const startServer = async () => {
   try {
     await connectDB();
+    await seedDefaultOwner();
     app.listen(PORT, () => {
       console.log(`[CineVault Server] Running on port ${PORT}`);
     });

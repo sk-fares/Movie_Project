@@ -2,25 +2,25 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play, Info, Edit, Trash2, Film, Clock, Bookmark, BookmarkCheck } from 'lucide-react';
 import { getPosterUrl, formatMinutes } from '../services/api';
-import { isInWatchlist, toggleWatchlist, getWatchProgress } from '../services/storage';
+import { useAuth } from '../context/AuthContext';
 
 export const MovieCard = ({ movie, onDelete, onWatchlistChange }) => {
+  const { isOwner, isMovieInWatchlist, toggleUserWatchlist, getMovieProgress } = useAuth();
   const [imageError, setImageError] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [inWatchlist, setInWatchlist] = useState(() => isInWatchlist(movie?._id));
   const navigate = useNavigate();
 
+  const inWatchlist = isMovieInWatchlist(movie?._id);
   const posterUrl = getPosterUrl(movie.posterPath);
-  const watchProgress = getWatchProgress(movie?._id);
+  const watchProgress = getMovieProgress(movie?._id);
 
   const handleCardClick = () => {
     navigate(`/movie/${movie._id}`);
   };
 
-  const handleBookmarkToggle = (e) => {
+  const handleBookmarkToggle = async (e) => {
     e.stopPropagation();
-    const isAdded = toggleWatchlist(movie._id);
-    setInWatchlist(isAdded);
+    const isAdded = await toggleUserWatchlist(movie._id);
     if (onWatchlistChange) onWatchlistChange(movie._id, isAdded);
   };
 
@@ -221,23 +221,27 @@ export const MovieCard = ({ movie, onDelete, onWatchlistChange }) => {
             >
               <Info size={15} />
             </button>
-            <button
-              onClick={() => navigate(`/edit/${movie._id}`)}
-              className="btn-icon"
-              title="Edit Movie"
-              style={{ width: '32px', height: '32px' }}
-            >
-              <Edit size={14} />
-            </button>
-            {onDelete && (
-              <button
-                onClick={() => onDelete(movie)}
-                className="btn-icon"
-                title="Delete Movie"
-                style={{ width: '32px', height: '32px', color: '#ff6b6b' }}
-              >
-                <Trash2 size={14} />
-              </button>
+            {isOwner && (
+              <>
+                <button
+                  onClick={() => navigate(`/edit/${movie._id}`)}
+                  className="btn-icon"
+                  title="Edit Movie"
+                  style={{ width: '32px', height: '32px' }}
+                >
+                  <Edit size={14} />
+                </button>
+                {onDelete && (
+                  <button
+                    onClick={() => onDelete(movie)}
+                    className="btn-icon"
+                    title="Delete Movie"
+                    style={{ width: '32px', height: '32px', color: '#ff6b6b' }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
