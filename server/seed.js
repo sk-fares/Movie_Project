@@ -7,6 +7,11 @@ import https from 'https';
 import mongoose from 'mongoose';
 import { Movie } from './models/Movie.js';
 import { POSTER_DIR, VIDEO_DIR, ensureUploadDirs } from './utils/fileHelper.js';
+import dns from 'dns';
+
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch (dnsErr) {}
 
 ensureUploadDirs();
 
