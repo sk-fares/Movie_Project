@@ -160,8 +160,11 @@ export const getPosterUrl = (posterPath) => {
   return `${BACKEND_BASE}/uploads/posters/${posterPath}`;
 };
 
-export const getStreamUrl = (movieId) => {
-  return `${API_BASE_URL}/movies/${movieId}/stream`;
+export const getStreamUrl = (movieId, quality = 'auto') => {
+  if (!quality || quality === 'auto') {
+    return `${API_BASE_URL}/movies/${movieId}/stream`;
+  }
+  return `${API_BASE_URL}/movies/${movieId}/stream?quality=${quality}`;
 };
 
 export const getDownloadUrl = (movieId) => {

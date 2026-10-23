@@ -15,13 +15,22 @@ import {
   Minimize,
   PictureInPicture,
   Settings,
-  Sparkles
+  Sparkles,
+  SlidersHorizontal
 } from 'lucide-react';
 import { movieApi, getStreamUrl, getDownloadUrl } from '../services/api';
 import { clearWatchProgress } from '../services/storage';
 import { useAuth } from '../context/AuthContext';
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
+const QUALITY_OPTIONS = [
+  { label: 'Auto (Original)', value: 'auto' },
+  { label: '1080p FHD', value: '1080p' },
+  { label: '720p HD', value: '720p' },
+  { label: '480p SD (Data Saver)', value: '480p' },
+  { label: '360p Low', value: '360p' }
+];
 
 export const VideoPlayerPage = () => {
   const { id } = useParams();
@@ -47,50 +56,69 @@ export const VideoPlayerPage = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
 
+  // Quality State
+  const [quality, setQuality] = useState('auto');
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
+  const pendingSeekTime = useRef(null);
+
   // Resume prompt state
   const [resumePrompt, setResumePrompt] = useState(null);
 
-  // Fetch movie metadata
+  // Keep stable references to avoid re-triggering effects
+  const getMovieProgressRef = useRef(getMovieProgress);
+  getMovieProgressRef.current = getMovieProgress;
+  const updateProgressRef = useRef(updateWatchProgress);
+  updateProgressRef.current = updateWatchProgress;
+
+  // Fetch movie metadata once per movie ID
   useEffect(() => {
+    let isMounted = true;
     const fetchMovie = async () => {
       try {
         setLoading(true);
         const res = await movieApi.getById(id);
-        if (res.success) {
+        if (isMounted && res.success) {
           setMovie(res.data);
-          
-          // Check saved watch progress
-          const saved = getMovieProgress(id);
+
+          // Check saved watch progress once on initial load
+          const saved = getMovieProgressRef.current(id);
           if (saved && saved.currentTime > 10 && saved.currentTime < (saved.duration - 15)) {
             setResumePrompt(saved.currentTime);
           }
         }
       } catch (err) {
-        console.error('Failed to load movie for player:', err);
-        setPlaybackError('Could not find movie record or video file.');
+        if (isMounted) {
+          console.error('Failed to load movie for player:', err);
+          setPlaybackError('Could not find movie record or video file.');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchMovie();
-  }, [id, getMovieProgress]);
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
 
-  // Periodic progress saving
+  // Periodic progress saving on a steady interval without restarting
   useEffect(() => {
     const interval = setInterval(() => {
       if (videoRef.current && !videoRef.current.paused && videoRef.current.duration) {
-        updateWatchProgress(id, videoRef.current.currentTime, videoRef.current.duration);
+        updateProgressRef.current(id, videoRef.current.currentTime, videoRef.current.duration);
       }
-    }, 4000);
+    }, 5000);
 
     return () => {
       clearInterval(interval);
       if (videoRef.current && videoRef.current.duration) {
-        updateWatchProgress(id, videoRef.current.currentTime, videoRef.current.duration);
+        updateProgressRef.current(id, videoRef.current.currentTime, videoRef.current.duration);
       }
     };
-  }, [id, updateWatchProgress]);
+  }, [id]);
 
   // Fullscreen change listener
   useEffect(() => {
@@ -109,6 +137,7 @@ export const VideoPlayerPage = () => {
       if (videoRef.current && !videoRef.current.paused) {
         setShowControls(false);
         setShowSpeedMenu(false);
+        setShowQualityMenu(false);
       }
     }, 3500);
   };
@@ -230,6 +259,18 @@ export const VideoPlayerPage = () => {
     setShowSpeedMenu(false);
   };
 
+  const handleQualityChange = (newQuality) => {
+    if (newQuality === quality) {
+      setShowQualityMenu(false);
+      return;
+    }
+    if (videoRef.current) {
+      pendingSeekTime.current = videoRef.current.currentTime;
+    }
+    setQuality(newQuality);
+    setShowQualityMenu(false);
+  };
+
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
     if (!document.fullscreenElement) {
@@ -322,7 +363,7 @@ export const VideoPlayerPage = () => {
     );
   }
 
-  const streamUrl = getStreamUrl(id);
+  const streamUrl = getStreamUrl(id, quality);
   const progressPercent = duration ? (currentTime / duration) * 100 : 0;
 
   return (
@@ -539,6 +580,13 @@ export const VideoPlayerPage = () => {
         playsInline
         preload="auto"
         onClick={togglePlay}
+        onLoadedMetadata={() => {
+          if (pendingSeekTime.current !== null && videoRef.current) {
+            videoRef.current.currentTime = pendingSeekTime.current;
+            pendingSeekTime.current = null;
+            if (isPlaying) videoRef.current.play().catch(() => {});
+          }
+        }}
         onTimeUpdate={() => {
           if (videoRef.current) setCurrentTime(videoRef.current.currentTime);
         }}
@@ -739,6 +787,89 @@ export const VideoPlayerPage = () => {
                       }}
                     >
                       {rate}x
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Quality Resolution Selector */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => {
+                  setShowQualityMenu(!showQualityMenu);
+                  setShowSpeedMenu(false);
+                }}
+                className="btn-icon"
+                style={{
+                  padding: '0.3rem 0.65rem',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  backgroundColor: quality !== 'auto' ? 'rgba(229, 9, 20, 0.2)' : 'transparent',
+                  color: quality !== 'auto' ? '#ff6b6b' : '#ffffff',
+                  border: quality !== 'auto' ? '1px solid rgba(229, 9, 20, 0.4)' : '1px solid rgba(255, 255, 255, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem'
+                }}
+                title="Change Video Quality / Resolution"
+              >
+                <SlidersHorizontal size={14} />
+                <span>{quality === 'auto' ? 'AUTO' : quality.toUpperCase()}</span>
+              </button>
+
+              {showQualityMenu && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '45px',
+                    right: 0,
+                    backgroundColor: '#1f1f1f',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '0.4rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px',
+                    boxShadow: 'var(--shadow-md)',
+                    zIndex: 30,
+                    minWidth: '170px'
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: '0.25rem 0.6rem',
+                      fontSize: '0.7rem',
+                      color: 'var(--text-muted)',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                      marginBottom: '0.25rem'
+                    }}
+                  >
+                    Quality / Resolution
+                  </div>
+                  {QUALITY_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => handleQualityChange(opt.value)}
+                      style={{
+                        padding: '0.4rem 0.75rem',
+                        fontSize: '0.8rem',
+                        borderRadius: '4px',
+                        color: quality === opt.value ? 'var(--accent-primary)' : '#ffffff',
+                        backgroundColor: quality === opt.value ? 'rgba(229, 9, 20, 0.15)' : 'transparent',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span>{opt.label}</span>
+                      {quality === opt.value && <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>✓</span>}
                     </button>
                   ))}
                 </div>

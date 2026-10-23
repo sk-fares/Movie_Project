@@ -322,10 +322,36 @@ export const streamMovie = async (req, res, next) => {
       });
     }
 
-    // If video is a direct CDN link (e.g. Cloudflare R2 Public CDN URL or external URL)
+    const requestedQuality = req.query.quality; // '480p', '360p', '720p', '1080p', 'auto'
+
+    // If video is a direct CDN link (e.g. Cloudinary, Cloudflare R2, or external CDN URL)
     if (movie.videoPath.startsWith('http://') || movie.videoPath.startsWith('https://')) {
-      // Redirect to the CDN URL so the browser streams directly from Cloudflare's edge CDN!
-      return res.redirect(302, movie.videoPath);
+      let streamUrl = movie.videoPath;
+
+      // Cloudinary on-the-fly resolution & quality downscaling
+      if (streamUrl.includes('cloudinary.com') && requestedQuality && requestedQuality !== 'auto') {
+        let transformStr = '';
+        if (requestedQuality === '480p') {
+          transformStr = 'w_854,c_limit,q_auto:eco,vc_h264';
+        } else if (requestedQuality === '360p') {
+          transformStr = 'w_640,c_limit,q_auto:low,vc_h264';
+        } else if (requestedQuality === '720p') {
+          transformStr = 'w_1280,c_limit,q_auto,vc_h264';
+        } else if (requestedQuality === '1080p') {
+          transformStr = 'w_1920,c_limit,q_auto,vc_h264';
+        }
+
+        if (transformStr) {
+          if (streamUrl.includes('/video/upload/')) {
+            streamUrl = streamUrl.replace('/video/upload/', `/video/upload/${transformStr}/`);
+          } else if (streamUrl.includes('/upload/')) {
+            streamUrl = streamUrl.replace('/upload/', `/upload/${transformStr}/`);
+          }
+        }
+      }
+
+      // Redirect to the stream URL so the browser streams directly from CDN
+      return res.redirect(302, streamUrl);
     }
 
     // Local Disk Streaming with HTTP 206 Byte Ranges

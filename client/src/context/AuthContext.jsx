@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { authApi } from '../services/api';
 import {
   saveWatchProgress as saveLocalProgress,
@@ -27,6 +27,8 @@ export const AuthProvider = ({ children }) => {
     }
   });
   const [loading, setLoading] = useState(true);
+  const userRef = useRef(user);
+  userRef.current = user;
 
   // Validate session on mount
   useEffect(() => {
@@ -50,7 +52,7 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async (identifier, password) => {
+  const login = useCallback(async (identifier, password) => {
     const res = await authApi.login(identifier, password);
     if (res.success && res.token && res.user) {
       setToken(res.token);
@@ -60,9 +62,9 @@ export const AuthProvider = ({ children }) => {
       return res.user;
     }
     throw new Error(res.error || 'Login failed');
-  };
+  }, []);
 
-  const register = async (username, email, password) => {
+  const register = useCallback(async (username, email, password) => {
     const res = await authApi.register(username, email, password);
     if (res.success && res.token && res.user) {
       setToken(res.token);
@@ -72,36 +74,37 @@ export const AuthProvider = ({ children }) => {
       return res.user;
     }
     throw new Error(res.error || 'Registration failed');
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setToken(null);
     setUser(null);
     try {
       localStorage.removeItem('cinevault_token');
       localStorage.removeItem('cinevault_user');
     } catch {}
-  };
+  }, []);
 
   // Sync watch progress to both backend user profile and local cache
-  const updateWatchProgress = async (movieId, currentTime, duration) => {
+  // Note: We don't trigger a React state re-render on every video tick
+  // to avoid video player blinking or resetting during active playback!
+  const updateWatchProgress = useCallback(async (movieId, currentTime, duration) => {
     saveLocalProgress(movieId, currentTime, duration);
-    if (token && user) {
+    const storedToken = localStorage.getItem('cinevault_token');
+    if (storedToken) {
       try {
-        const res = await authApi.updateProgress(movieId, currentTime, duration);
-        if (res.success && res.watchProgress) {
-          setUser((prev) => (prev ? { ...prev, watchProgress: res.watchProgress } : prev));
-        }
+        await authApi.updateProgress(movieId, currentTime, duration);
       } catch (err) {
         console.warn('Failed to sync progress to cloud profile:', err);
       }
     }
-  };
+  }, []);
 
   // Sync watchlist toggle to both backend user profile and local cache
-  const toggleUserWatchlist = async (movieId) => {
+  const toggleUserWatchlist = useCallback(async (movieId) => {
     const localAdded = toggleLocalWatchlist(movieId);
-    if (token && user) {
+    const storedToken = localStorage.getItem('cinevault_token');
+    if (storedToken && userRef.current) {
       try {
         const res = await authApi.toggleWatchlist(movieId);
         if (res.success && res.watchlist) {
@@ -113,44 +116,65 @@ export const AuthProvider = ({ children }) => {
       }
     }
     return localAdded;
-  };
+  }, []);
 
-  const isMovieInWatchlist = (movieId) => {
+  const isMovieInWatchlist = useCallback((movieId) => {
     if (!movieId) return false;
-    if (user && Array.isArray(user.watchlist)) {
-      return user.watchlist.some((id) => (typeof id === 'object' ? id._id === movieId : id === movieId));
+    const currentUser = userRef.current;
+    if (currentUser && Array.isArray(currentUser.watchlist)) {
+      return currentUser.watchlist.some((id) => (typeof id === 'object' ? id._id === movieId : id === movieId));
     }
     return isLocalInWatchlist(movieId);
-  };
+  }, []);
 
-  const getMovieProgress = (movieId) => {
+  const getMovieProgress = useCallback((movieId) => {
     if (!movieId) return null;
-    if (user && Array.isArray(user.watchProgress)) {
-      const match = user.watchProgress.find(
+    const local = getLocalProgress(movieId);
+    if (local) return local;
+
+    const currentUser = userRef.current;
+    if (currentUser && Array.isArray(currentUser.watchProgress)) {
+      const match = currentUser.watchProgress.find(
         (p) => (typeof p.movieId === 'object' ? p.movieId._id === movieId : p.movieId === movieId)
       );
       if (match) return match;
     }
-    return getLocalProgress(movieId);
-  };
+    return null;
+  }, []);
 
   const isOwner = Boolean(user && user.role === 'owner');
   const isAuthenticated = Boolean(user && token);
 
-  const value = {
-    user,
-    token,
-    loading,
-    isOwner,
-    isAuthenticated,
-    login,
-    register,
-    logout,
-    updateWatchProgress,
-    toggleUserWatchlist,
-    isMovieInWatchlist,
-    getMovieProgress
-  };
+  const value = useMemo(
+    () => ({
+      user,
+      token,
+      loading,
+      isOwner,
+      isAuthenticated,
+      login,
+      register,
+      logout,
+      updateWatchProgress,
+      toggleUserWatchlist,
+      isMovieInWatchlist,
+      getMovieProgress
+    }),
+    [
+      user,
+      token,
+      loading,
+      isOwner,
+      isAuthenticated,
+      login,
+      register,
+      logout,
+      updateWatchProgress,
+      toggleUserWatchlist,
+      isMovieInWatchlist,
+      getMovieProgress
+    ]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
