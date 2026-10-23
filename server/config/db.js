@@ -1,8 +1,15 @@
 import mongoose from 'mongoose';
+import dns from 'dns';
+
+// Ensure standard reliable DNS resolution for MongoDB Atlas SRV records
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch (dnsErr) {
+  // If platform restricts setting DNS servers, continue gracefully
+}
 
 export const connectDB = async () => {
   try {
-    // Railway provides MONGO_URL or MONGODB_URL, standard is MONGO_URI
     const uri =
       process.env.MONGO_URI ||
       process.env.MONGO_URL ||
@@ -13,7 +20,6 @@ export const connectDB = async () => {
     console.log(`[MongoDB] Connected successfully: ${conn.connection.host}/${conn.connection.name}`);
   } catch (error) {
     console.error(`[MongoDB] Connection error: ${error.message}`);
-    // In production on cloud hosts, retry after a few seconds instead of crashing immediately
     if (process.env.NODE_ENV === 'production') {
       console.log('[MongoDB] Retrying connection in 5 seconds...');
       setTimeout(connectDB, 5000);
