@@ -1,17 +1,27 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Play, Info, Edit, Trash2, Film, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Play, Info, Edit, Trash2, Film, Clock, Bookmark, BookmarkCheck } from 'lucide-react';
 import { getPosterUrl, formatMinutes } from '../services/api';
+import { isInWatchlist, toggleWatchlist, getWatchProgress } from '../services/storage';
 
-export const MovieCard = ({ movie, onDelete }) => {
+export const MovieCard = ({ movie, onDelete, onWatchlistChange }) => {
   const [imageError, setImageError] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [inWatchlist, setInWatchlist] = useState(() => isInWatchlist(movie?._id));
   const navigate = useNavigate();
 
   const posterUrl = getPosterUrl(movie.posterPath);
+  const watchProgress = getWatchProgress(movie?._id);
 
   const handleCardClick = () => {
     navigate(`/movie/${movie._id}`);
+  };
+
+  const handleBookmarkToggle = (e) => {
+    e.stopPropagation();
+    const isAdded = toggleWatchlist(movie._id);
+    setInWatchlist(isAdded);
+    if (onWatchlistChange) onWatchlistChange(movie._id, isAdded);
   };
 
   return (
@@ -113,7 +123,6 @@ export const MovieCard = ({ movie, onDelete }) => {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            pointerEvents: 'none',
             zIndex: 2
           }}
         >
@@ -125,14 +134,27 @@ export const MovieCard = ({ movie, onDelete }) => {
               {movie.releaseYear}
             </span>
           )}
-          {movie.genre && (
-            <span
-              className="badge badge-accent"
-              style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', backdropFilter: 'blur(4px)' }}
-            >
-              {movie.genre}
-            </span>
-          )}
+
+          {/* Bookmark Button */}
+          <button
+            onClick={handleBookmarkToggle}
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              backgroundColor: inWatchlist ? 'var(--accent-primary)' : 'rgba(0,0,0,0.6)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1px solid rgba(255,255,255,0.2)',
+              backdropFilter: 'blur(4px)',
+              transition: 'all 0.2s ease'
+            }}
+            title={inWatchlist ? 'Remove from My List' : 'Add to My List'}
+          >
+            {inWatchlist ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+          </button>
         </div>
 
         {/* Hover Overlay with Quick Play Button */}
@@ -219,6 +241,29 @@ export const MovieCard = ({ movie, onDelete }) => {
             )}
           </div>
         </div>
+
+        {/* Watch Progress Underbar if movie was previously watched */}
+        {watchProgress && watchProgress.percentage > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '4px',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              zIndex: 4
+            }}
+          >
+            <div
+              style={{
+                height: '100%',
+                width: `${watchProgress.percentage}%`,
+                backgroundColor: 'var(--accent-primary)'
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Card Info Footer */}

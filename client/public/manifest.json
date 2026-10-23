@@ -1,0 +1,17 @@
+{
+  "short_name": "CineVault",
+  "name": "CineVault — Personal Cinema & Streaming",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#141414",
+  "theme_color": "#141414",
+  "display": "standalone",
+  "orientation": "any"
+}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, X, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
+import { Search, X, ArrowUpDown, Bookmark } from 'lucide-react';
 
 const DEFAULT_GENRES = [
   'All',
@@ -19,6 +19,9 @@ export const FilterBar = ({
   onSearchChange,
   selectedGenre,
   onGenreChange,
+  showOnlyWatchlist,
+  onToggleWatchlistFilter,
+  watchlistCount = 0,
   sortBy,
   onSortChange,
   availableGenres = [],
@@ -36,7 +39,7 @@ export const FilterBar = ({
         marginBottom: '2rem'
       }}
     >
-      {/* Top Controls Row: Search Input and Sort Selector */}
+      {/* Top Controls Row: Search Input, Watchlist Toggle and Sort Selector */}
       <div
         style={{
           display: 'flex',
@@ -108,11 +111,32 @@ export const FilterBar = ({
           )}
         </div>
 
-        {/* Sort and Count */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
-            <ArrowUpDown size={16} />
-            <span style={{ fontSize: '0.85rem' }}>Sort:</span>
+        {/* Watchlist, Sort, and Count */}
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.85rem' }}>
+          {/* My List Filter Button */}
+          <button
+            onClick={onToggleWatchlistFilter}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.5rem 0.9rem',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              backgroundColor: showOnlyWatchlist ? 'rgba(229, 9, 20, 0.2)' : '#1c1c1c',
+              color: showOnlyWatchlist ? 'var(--accent-primary)' : 'var(--text-secondary)',
+              border: `1px solid ${showOnlyWatchlist ? 'var(--accent-primary)' : '#303030'}`,
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <Bookmark size={15} />
+            <span>My List ({watchlistCount})</span>
+          </button>
+
+          {/* Sort Dropdown */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--text-secondary)' }}>
+            <ArrowUpDown size={15} />
             <select
               value={sortBy}
               onChange={(e) => onSortChange(e.target.value)}
@@ -122,7 +146,7 @@ export const FilterBar = ({
                 borderRadius: 'var(--radius-sm)',
                 color: '#ffffff',
                 padding: '0.5rem 0.75rem',
-                fontSize: '0.875rem',
+                fontSize: '0.85rem',
                 outline: 'none',
                 cursor: 'pointer'
               }}
@@ -131,8 +155,8 @@ export const FilterBar = ({
               <option value="oldest">Oldest Added</option>
               <option value="title_asc">Title (A - Z)</option>
               <option value="title_desc">Title (Z - A)</option>
-              <option value="year_desc">Year (Newest First)</option>
-              <option value="year_asc">Year (Oldest First)</option>
+              <option value="year_desc">Year (Newest)</option>
+              <option value="year_asc">Year (Oldest)</option>
             </select>
           </div>
 

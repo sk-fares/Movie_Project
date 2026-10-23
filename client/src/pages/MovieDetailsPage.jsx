@@ -10,31 +10,46 @@ import {
   Calendar,
   HardDrive,
   FileVideo,
-  Film
+  Film,
+  Bookmark,
+  BookmarkCheck,
+  Sparkles
 } from 'lucide-react';
 import { movieApi, getPosterUrl, getDownloadUrl, formatBytes, formatMinutes } from '../services/api';
+import { isInWatchlist, toggleWatchlist } from '../services/storage';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { MovieCard } from '../components/MovieCard';
 
 export const MovieDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [movie, setMovie] = useState(null);
+  const [allMovies, setAllMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageError, setImageError] = useState(false);
+  const [inWatchlist, setInWatchlist] = useState(false);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    const fetchMovie = async () => {
+    const fetchMovieAndRelated = async () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await movieApi.getById(id);
+        const [res, allRes] = await Promise.all([
+          movieApi.getById(id),
+          movieApi.getAll()
+        ]);
+
         if (res.success) {
           setMovie(res.data);
+          setInWatchlist(isInWatchlist(res.data._id));
+        }
+        if (allRes.success) {
+          setAllMovies(allRes.data);
         }
       } catch (err) {
         console.error('Error fetching movie details:', err);
@@ -44,8 +59,14 @@ export const MovieDetailsPage = () => {
       }
     };
 
-    fetchMovie();
+    fetchMovieAndRelated();
   }, [id]);
+
+  const handleWatchlistToggle = () => {
+    if (!movie) return;
+    const isAdded = toggleWatchlist(movie._id);
+    setInWatchlist(isAdded);
+  };
 
   const handleDelete = async () => {
     try {
@@ -90,6 +111,11 @@ export const MovieDetailsPage = () => {
   }
 
   const posterUrl = getPosterUrl(movie.posterPath);
+
+  // Filter recommendations (same genre, excluding current movie)
+  const relatedMovies = allMovies
+    .filter((m) => m._id !== movie._id && (m.genre === movie.genre || !movie.genre))
+    .slice(0, 4);
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', paddingBottom: '5rem' }}>
@@ -231,14 +257,24 @@ export const MovieDetailsPage = () => {
                 Watch Now
               </Link>
 
+              <button
+                onClick={handleWatchlistToggle}
+                className="btn btn-secondary"
+                style={{ padding: '0.85rem 1.4rem' }}
+                title="Add / Remove from My List"
+              >
+                {inWatchlist ? <BookmarkCheck size={18} color="var(--accent-primary)" /> : <Bookmark size={18} />}
+                <span>{inWatchlist ? 'In My List' : 'Add to List'}</span>
+              </button>
+
               <a
                 href={getDownloadUrl(movie._id)}
-                className="btn btn-secondary"
-                style={{ padding: '0.85rem 1.6rem', fontSize: '1rem' }}
+                className="btn btn-outline"
+                style={{ padding: '0.85rem 1.4rem' }}
                 title="Download original movie video file"
               >
                 <Download size={18} />
-                Download Movie
+                Download
               </a>
 
               <Link
@@ -248,7 +284,6 @@ export const MovieDetailsPage = () => {
                 title="Edit Movie Details"
               >
                 <Edit size={18} />
-                Edit
               </Link>
 
               <button
@@ -337,6 +372,27 @@ export const MovieDetailsPage = () => {
             </div>
           </div>
         </div>
+
+        {/* More Like This Recommendations */}
+        {relatedMovies.length > 0 && (
+          <div style={{ marginTop: '4.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              <Sparkles size={20} color="var(--accent-primary)" />
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 800 }}>More Like This</h3>
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: '1.5rem'
+              }}
+            >
+              {relatedMovies.map((relMovie) => (
+                <MovieCard key={relMovie._id} movie={relMovie} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Delete Confirmation Modal */}

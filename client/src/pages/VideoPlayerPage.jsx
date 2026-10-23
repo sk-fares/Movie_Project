@@ -5,21 +5,48 @@ import {
   AlertTriangle,
   Download,
   Loader2,
-  Film
+  Play,
+  Pause,
+  RotateCcw,
+  RotateCw,
+  Volume2,
+  VolumeX,
+  Maximize,
+  Minimize,
+  PictureInPicture,
+  Settings,
+  Sparkles
 } from 'lucide-react';
 import { movieApi, getStreamUrl, getDownloadUrl } from '../services/api';
+import { saveWatchProgress, getWatchProgress, clearWatchProgress } from '../services/storage';
+
+const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 export const VideoPlayerPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const videoRef = useRef(null);
+  const containerRef = useRef(null);
+  const hideControlsTimeout = useRef(null);
 
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [videoBuffering, setVideoBuffering] = useState(true);
   const [playbackError, setPlaybackError] = useState(null);
   const [showControls, setShowControls] = useState(true);
-  const hideControlsTimeout = useRef(null);
+
+  // Video State
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+
+  // Resume prompt state
+  const [resumePrompt, setResumePrompt] = useState(null);
 
   // Fetch movie metadata
   useEffect(() => {
@@ -29,6 +56,12 @@ export const VideoPlayerPage = () => {
         const res = await movieApi.getById(id);
         if (res.success) {
           setMovie(res.data);
+          
+          // Check saved watch progress
+          const saved = getWatchProgress(id);
+          if (saved && saved.currentTime > 10 && saved.currentTime < (saved.duration - 15)) {
+            setResumePrompt(saved.currentTime);
+          }
         }
       } catch (err) {
         console.error('Failed to load movie for player:', err);
@@ -41,15 +74,39 @@ export const VideoPlayerPage = () => {
     fetchMovie();
   }, [id]);
 
-  // Handle overlay auto-hide when mouse is stationary
+  // Periodic progress saving
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (videoRef.current && !videoRef.current.paused && videoRef.current.duration) {
+        saveWatchProgress(id, videoRef.current.currentTime, videoRef.current.duration);
+      }
+    }, 4000);
+
+    return () => {
+      clearInterval(interval);
+      if (videoRef.current && videoRef.current.duration) {
+        saveWatchProgress(id, videoRef.current.currentTime, videoRef.current.duration);
+      }
+    };
+  }, [id]);
+
+  // Fullscreen change listener
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  // Controls auto-hiding
   const handleMouseMove = () => {
     setShowControls(true);
-    if (hideControlsTimeout.current) {
-      clearTimeout(hideControlsTimeout.current);
-    }
+    if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current);
     hideControlsTimeout.current = setTimeout(() => {
       if (videoRef.current && !videoRef.current.paused) {
         setShowControls(false);
+        setShowSpeedMenu(false);
       }
     }, 3500);
   };
@@ -57,50 +114,45 @@ export const VideoPlayerPage = () => {
   // Keyboard navigation shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Don't trigger if user is typing in an input
       if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
-
       const video = videoRef.current;
       if (!video) return;
 
       switch (e.key) {
-        case ' ': // Space: Play/Pause
+        case ' ': // Space: toggle play
           e.preventDefault();
-          if (video.paused) {
-            video.play();
-          } else {
-            video.pause();
-          }
+          togglePlay();
           break;
-        case 'ArrowRight': // Seek forward 10s
+        case 'ArrowRight': // Seek +10s
           e.preventDefault();
-          video.currentTime = Math.min(video.currentTime + 10, video.duration || 0);
+          seekBy(10);
           break;
-        case 'ArrowLeft': // Seek backward 10s
+        case 'ArrowLeft': // Seek -10s
           e.preventDefault();
-          video.currentTime = Math.max(video.currentTime - 10, 0);
+          seekBy(-10);
           break;
         case 'ArrowUp': // Volume +10%
           e.preventDefault();
-          video.volume = Math.min(video.volume + 0.1, 1);
+          changeVolume(Math.min(video.volume + 0.1, 1));
           break;
         case 'ArrowDown': // Volume -10%
           e.preventDefault();
-          video.volume = Math.max(video.volume - 0.1, 0);
+          changeVolume(Math.max(video.volume - 0.1, 0));
           break;
         case 'f':
-        case 'F': // Fullscreen toggle
+        case 'F': // Fullscreen
           e.preventDefault();
-          if (!document.fullscreenElement) {
-            video.parentElement?.requestFullscreen().catch(() => {});
-          } else {
-            document.exitFullscreen().catch(() => {});
-          }
+          toggleFullscreen();
           break;
         case 'm':
-        case 'M': // Mute toggle
+        case 'M': // Mute
           e.preventDefault();
-          video.muted = !video.muted;
+          toggleMute();
+          break;
+        case 'p':
+        case 'P': // Picture-in-Picture
+          e.preventDefault();
+          togglePiP();
           break;
         default:
           break;
@@ -112,7 +164,116 @@ export const VideoPlayerPage = () => {
       window.removeEventListener('keydown', handleKeyDown);
       if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current);
     };
-  }, []);
+  }, [volume, isMuted]);
+
+  // Controls actions
+  const togglePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.play().catch(handleVideoError);
+      setIsPlaying(true);
+    } else {
+      video.pause();
+      setIsPlaying(false);
+      saveWatchProgress(id, video.currentTime, video.duration);
+    }
+  };
+
+  const seekBy = (seconds) => {
+    const video = videoRef.current;
+    if (!video) return;
+    const target = Math.max(0, Math.min(video.currentTime + seconds, video.duration || 0));
+    video.currentTime = target;
+    setCurrentTime(target);
+  };
+
+  const handleSeek = (e) => {
+    const video = videoRef.current;
+    if (!video || !video.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(clickX / rect.width, 1));
+    const newTime = percentage * video.duration;
+    video.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+
+  const changeVolume = (val) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.volume = val;
+    setVolume(val);
+    if (val === 0) {
+      video.muted = true;
+      setIsMuted(true);
+    } else if (isMuted) {
+      video.muted = false;
+      setIsMuted(false);
+    }
+  };
+
+  const toggleMute = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !isMuted;
+    setIsMuted(!isMuted);
+  };
+
+  const handleRateChange = (rate) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.playbackRate = rate;
+    setPlaybackRate(rate);
+    setShowSpeedMenu(false);
+  };
+
+  const toggleFullscreen = () => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+
+  const togglePiP = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (document.pictureInPictureEnabled) {
+        await video.requestPictureInPicture();
+      }
+    } catch (err) {
+      console.warn('PiP not available:', err);
+    }
+  };
+
+  const applyResume = () => {
+    if (videoRef.current && resumePrompt) {
+      videoRef.current.currentTime = resumePrompt;
+      videoRef.current.play().catch(() => {});
+    }
+    setResumePrompt(null);
+  };
+
+  const dismissResume = () => {
+    clearWatchProgress(id);
+    setResumePrompt(null);
+  };
+
+  const formatTime = (seconds) => {
+    if (isNaN(seconds) || seconds < 0) return '00:00';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    if (h > 0) {
+      return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+    return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+  };
 
   const handleVideoError = (e) => {
     console.error('Video playback error:', e);
@@ -160,9 +321,11 @@ export const VideoPlayerPage = () => {
   }
 
   const streamUrl = getStreamUrl(id);
+  const progressPercent = duration ? (currentTime / duration) * 100 : 0;
 
   return (
     <div
+      ref={containerRef}
       onMouseMove={handleMouseMove}
       style={{
         position: 'fixed',
@@ -172,18 +335,19 @@ export const VideoPlayerPage = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        userSelect: 'none'
       }}
     >
-      {/* Top Floating Control Bar */}
+      {/* Top Floating Header */}
       <div
         style={{
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
-          padding: '1.5rem 2rem',
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)',
+          padding: '1.25rem 2rem',
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)',
           zIndex: 20,
           display: 'flex',
           alignItems: 'center',
@@ -198,7 +362,7 @@ export const VideoPlayerPage = () => {
             onClick={() => navigate(`/movie/${id}`)}
             className="btn btn-secondary"
             style={{
-              padding: '0.6rem 1rem',
+              padding: '0.55rem 1rem',
               borderRadius: '999px',
               backgroundColor: 'rgba(0, 0, 0, 0.6)',
               border: '1px solid rgba(255, 255, 255, 0.15)'
@@ -209,14 +373,7 @@ export const VideoPlayerPage = () => {
           </button>
 
           <div>
-            <h1
-              style={{
-                fontSize: '1.3rem',
-                fontWeight: 800,
-                color: '#ffffff',
-                lineHeight: 1.2
-              }}
-            >
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', lineHeight: 1.2 }}>
               {movie?.title || 'Watch Movie'}
             </h1>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.2rem' }}>
@@ -235,7 +392,7 @@ export const VideoPlayerPage = () => {
             href={getDownloadUrl(id)}
             className="btn btn-secondary"
             style={{
-              padding: '0.6rem 1rem',
+              padding: '0.55rem 1rem',
               borderRadius: '999px',
               backgroundColor: 'rgba(0, 0, 0, 0.6)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
@@ -248,6 +405,48 @@ export const VideoPlayerPage = () => {
           </a>
         </div>
       </div>
+
+      {/* Resume Playback Prompt Banner */}
+      {resumePrompt && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '85px',
+            zIndex: 25,
+            backgroundColor: 'rgba(25, 25, 25, 0.95)',
+            border: '1px solid rgba(229, 9, 20, 0.5)',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.85rem 1.4rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            boxShadow: 'var(--shadow-lg)',
+            backdropFilter: 'blur(8px)',
+            animation: 'fadeIn 0.2s ease'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffffff', fontSize: '0.9rem' }}>
+            <Sparkles size={16} color="var(--accent-primary)" />
+            <span>Resume from {formatTime(resumePrompt)}?</span>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={applyResume}
+              className="btn btn-primary"
+              style={{ padding: '0.35rem 0.85rem', fontSize: '0.82rem' }}
+            >
+              Resume
+            </button>
+            <button
+              onClick={dismissResume}
+              className="btn btn-outline"
+              style={{ padding: '0.35rem 0.85rem', fontSize: '0.82rem' }}
+            >
+              Start Over
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Buffering Indicator */}
       {videoBuffering && !playbackError && (
@@ -330,14 +529,22 @@ export const VideoPlayerPage = () => {
         </div>
       )}
 
-      {/* HTML5 Video Element */}
+      {/* Native HTML5 Video Element */}
       <video
         ref={videoRef}
         src={streamUrl}
-        controls
         autoPlay
         playsInline
         preload="auto"
+        onClick={togglePlay}
+        onTimeUpdate={() => {
+          if (videoRef.current) setCurrentTime(videoRef.current.currentTime);
+        }}
+        onDurationChange={() => {
+          if (videoRef.current) setDuration(videoRef.current.duration);
+        }}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
         onWaiting={() => setVideoBuffering(true)}
         onPlaying={() => setVideoBuffering(false)}
         onCanPlay={() => setVideoBuffering(false)}
@@ -348,9 +555,216 @@ export const VideoPlayerPage = () => {
           maxHeight: '100vh',
           objectFit: 'contain',
           backgroundColor: '#000000',
-          outline: 'none'
+          cursor: showControls ? 'default' : 'none'
         }}
       />
+
+      {/* Custom Bottom Controls Bar */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          padding: '1.5rem 2rem 1.25rem 2rem',
+          background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)',
+          zIndex: 20,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.8rem',
+          opacity: showControls ? 1 : 0,
+          pointerEvents: showControls ? 'auto' : 'none',
+          transition: 'opacity 0.3s ease'
+        }}
+      >
+        {/* Scrubber Progress Bar */}
+        <div
+          onClick={handleSeek}
+          style={{
+            position: 'relative',
+            height: '6px',
+            backgroundColor: 'rgba(255, 255, 255, 0.25)',
+            borderRadius: '3px',
+            cursor: 'pointer',
+            transition: 'height 0.15s ease'
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.height = '10px')}
+          onMouseLeave={(e) => (e.currentTarget.style.height = '6px')}
+        >
+          {/* Active progress */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              bottom: 0,
+              width: `${progressPercent}%`,
+              backgroundColor: 'var(--accent-primary)',
+              borderRadius: '3px'
+            }}
+          />
+          {/* Thumb marker */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: `${progressPercent}%`,
+              transform: 'translate(-50%, -50%)',
+              width: '14px',
+              height: '14px',
+              borderRadius: '50%',
+              backgroundColor: '#ffffff',
+              boxShadow: '0 0 6px rgba(0,0,0,0.6)'
+            }}
+          />
+        </div>
+
+        {/* Buttons Row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Left Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {/* Play/Pause */}
+            <button
+              onClick={togglePlay}
+              className="btn-icon"
+              style={{ width: '40px', height: '40px', backgroundColor: 'transparent' }}
+              title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+            >
+              {isPlaying ? <Pause size={24} fill="#ffffff" /> : <Play size={24} fill="#ffffff" />}
+            </button>
+
+            {/* Seek -10s */}
+            <button
+              onClick={() => seekBy(-10)}
+              className="btn-icon"
+              style={{ width: '36px', height: '36px', backgroundColor: 'transparent' }}
+              title="Seek back 10s (Left Arrow)"
+            >
+              <RotateCcw size={20} />
+            </button>
+
+            {/* Seek +10s */}
+            <button
+              onClick={() => seekBy(10)}
+              className="btn-icon"
+              style={{ width: '36px', height: '36px', backgroundColor: 'transparent' }}
+              title="Seek forward 10s (Right Arrow)"
+            >
+              <RotateCw size={20} />
+            </button>
+
+            {/* Volume Control */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <button
+                onClick={toggleMute}
+                className="btn-icon"
+                style={{ width: '36px', height: '36px', backgroundColor: 'transparent' }}
+                title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
+              >
+                {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+              </button>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={isMuted ? 0 : volume}
+                onChange={(e) => changeVolume(parseFloat(e.target.value))}
+                style={{
+                  width: '75px',
+                  height: '4px',
+                  accentColor: 'var(--accent-primary)',
+                  cursor: 'pointer'
+                }}
+              />
+            </div>
+
+            {/* Time Display */}
+            <div style={{ fontSize: '0.85rem', color: '#e5e5e5', fontFamily: 'monospace' }}>
+              <span>{formatTime(currentTime)}</span>
+              <span style={{ color: 'var(--text-muted)', margin: '0 4px' }}>/</span>
+              <span style={{ color: 'var(--text-secondary)' }}>{formatTime(duration)}</span>
+            </div>
+          </div>
+
+          {/* Right Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
+            {/* Speed Selector */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setShowSpeedMenu(!showSpeedMenu)}
+                className="btn-icon"
+                style={{
+                  padding: '0.3rem 0.6rem',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  backgroundColor: 'transparent'
+                }}
+                title="Playback Speed"
+              >
+                {playbackRate}x
+              </button>
+
+              {showSpeedMenu && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '45px',
+                    right: 0,
+                    backgroundColor: '#1f1f1f',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '0.4rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px',
+                    boxShadow: 'var(--shadow-md)',
+                    zIndex: 30
+                  }}
+                >
+                  {PLAYBACK_RATES.map((rate) => (
+                    <button
+                      key={rate}
+                      onClick={() => handleRateChange(rate)}
+                      style={{
+                        padding: '0.35rem 0.8rem',
+                        fontSize: '0.8rem',
+                        borderRadius: '4px',
+                        color: playbackRate === rate ? 'var(--accent-primary)' : '#ffffff',
+                        backgroundColor: playbackRate === rate ? 'rgba(229, 9, 20, 0.15)' : 'transparent',
+                        textAlign: 'left'
+                      }}
+                    >
+                      {rate}x
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Picture in Picture */}
+            <button
+              onClick={togglePiP}
+              className="btn-icon"
+              style={{ width: '36px', height: '36px', backgroundColor: 'transparent' }}
+              title="Picture in Picture (P)"
+            >
+              <PictureInPicture size={19} />
+            </button>
+
+            {/* Fullscreen */}
+            <button
+              onClick={toggleFullscreen}
+              className="btn-icon"
+              style={{ width: '36px', height: '36px', backgroundColor: 'transparent' }}
+              title={isFullscreen ? 'Exit Fullscreen (F)' : 'Fullscreen (F)'}
+            >
+              {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+            </button>
+          </div>
+        </div>
+      </div>
 
       <style>{`
         @keyframes spin {

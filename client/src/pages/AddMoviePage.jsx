@@ -44,21 +44,21 @@ export const AddMoviePage = () => {
   const [posterPreview, setPosterPreview] = useState(null);
   const [videoFile, setVideoFile] = useState(null);
 
+  // Drag states
+  const [videoDragOver, setVideoDragOver] = useState(false);
+  const [posterDragOver, setPosterDragOver] = useState(false);
+
   // Upload Progress & UI State
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState(null);
 
-  // Handle Poster Selection & Preview
-  const handlePosterChange = (e) => {
-    const file = e.target.files[0];
+  const processPoster = (file) => {
     if (!file) return;
-
     if (!file.type.startsWith('image/')) {
       setError('Please select an image file (JPG, PNG, WEBP) for the poster.');
       return;
     }
-
     setPosterFile(file);
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -68,16 +68,8 @@ export const AddMoviePage = () => {
     setError(null);
   };
 
-  const removePoster = () => {
-    setPosterFile(null);
-    setPosterPreview(null);
-  };
-
-  // Handle Video File Selection
-  const handleVideoChange = (e) => {
-    const file = e.target.files[0];
+  const processVideo = (file) => {
     if (!file) return;
-
     const allowedExtensions = ['.mp4', '.mkv', '.webm', '.mov', '.avi'];
     const hasValidExt = allowedExtensions.some((ext) => file.name.toLowerCase().endsWith(ext));
 
@@ -89,21 +81,32 @@ export const AddMoviePage = () => {
     setVideoFile(file);
     setError(null);
 
-    // Optional: Auto-populate title if title field is empty
     if (!title.trim()) {
       const cleanName = file.name
-        .replace(/\.[^/.]+$/, '') // remove extension
-        .replace(/[._-]/g, ' ') // replace dots/underscores with spaces
-        .replace(/\b\w/g, (c) => c.toUpperCase()); // title case
+        .replace(/\.[^/.]+$/, '')
+        .replace(/[._-]/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
       setTitle(cleanName);
     }
+  };
+
+  const handlePosterChange = (e) => {
+    processPoster(e.target.files[0]);
+  };
+
+  const handleVideoChange = (e) => {
+    processVideo(e.target.files[0]);
+  };
+
+  const removePoster = () => {
+    setPosterFile(null);
+    setPosterPreview(null);
   };
 
   const removeVideo = () => {
     setVideoFile(null);
   };
 
-  // Submit Handler
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -157,7 +160,6 @@ export const AddMoviePage = () => {
 
   return (
     <div className="container" style={{ paddingTop: '100px', paddingBottom: '5rem', maxWidth: '850px' }}>
-      {/* Back button */}
       <Link to="/" className="btn btn-outline" style={{ marginBottom: '1.5rem', padding: '0.5rem 1rem' }}>
         <ArrowLeft size={16} />
         Back to Library
@@ -189,7 +191,6 @@ export const AddMoviePage = () => {
           </p>
         </div>
 
-        {/* Error Alert */}
         {error && (
           <div
             style={{
@@ -249,7 +250,6 @@ export const AddMoviePage = () => {
               marginBottom: '1.5rem'
             }}
           >
-            {/* Release Year */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Release Year</label>
               <input
@@ -264,7 +264,6 @@ export const AddMoviePage = () => {
               />
             </div>
 
-            {/* Genre */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Genre</label>
               <select
@@ -282,7 +281,6 @@ export const AddMoviePage = () => {
               </select>
             </div>
 
-            {/* Runtime */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Runtime (minutes)</label>
               <input
@@ -298,7 +296,6 @@ export const AddMoviePage = () => {
             </div>
           </div>
 
-          {/* Custom Genre Input if 'Other' selected */}
           {genre === 'Other' && (
             <div className="form-group">
               <label className="form-label">Custom Genre Name</label>
@@ -313,18 +310,31 @@ export const AddMoviePage = () => {
             </div>
           )}
 
-          {/* Video File Upload Box */}
+          {/* Video Drag & Drop Upload Box */}
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
             <label className="form-label">
               Movie Video File <span style={{ color: 'var(--accent-primary)' }}>*</span>
             </label>
             <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setVideoDragOver(true);
+              }}
+              onDragLeave={() => setVideoDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setVideoDragOver(false);
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                  processVideo(e.dataTransfer.files[0]);
+                }
+              }}
               style={{
-                border: '2px dashed #3a3a3a',
+                border: `2px dashed ${videoDragOver ? 'var(--accent-primary)' : '#3a3a3a'}`,
+                backgroundColor: videoDragOver ? 'rgba(229, 9, 20, 0.08)' : '#202020',
                 borderRadius: 'var(--radius-md)',
                 padding: '1.75rem',
-                backgroundColor: '#202020',
                 textAlign: 'center',
+                transition: 'all 0.2s ease',
                 position: 'relative'
               }}
             >
@@ -387,7 +397,9 @@ export const AddMoviePage = () => {
                   >
                     <Upload size={22} />
                   </div>
-                  <span style={{ fontWeight: 600, color: '#ffffff' }}>Choose Movie Video File</span>
+                  <span style={{ fontWeight: 600, color: '#ffffff' }}>
+                    {videoDragOver ? 'Drop movie video file here' : 'Choose or Drag & Drop Video File'}
+                  </span>
                   <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                     Supported formats: MP4, MKV, WEBM, MOV, AVI
                   </span>
@@ -403,7 +415,7 @@ export const AddMoviePage = () => {
             </div>
           </div>
 
-          {/* Poster Image Upload Box */}
+          {/* Poster Drag & Drop Upload Box */}
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
             <label className="form-label">Cover Poster Image (Optional)</label>
             <div
@@ -414,7 +426,6 @@ export const AddMoviePage = () => {
                 flexWrap: 'wrap'
               }}
             >
-              {/* Preview Thumbnail */}
               {posterPreview && (
                 <div
                   style={{
@@ -449,16 +460,28 @@ export const AddMoviePage = () => {
                 </div>
               )}
 
-              {/* Upload Action */}
               <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setPosterDragOver(true);
+                }}
+                onDragLeave={() => setPosterDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setPosterDragOver(false);
+                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    processPoster(e.dataTransfer.files[0]);
+                  }
+                }}
                 style={{
                   flex: 1,
                   minWidth: '220px',
-                  border: '2px dashed #3a3a3a',
+                  border: `2px dashed ${posterDragOver ? 'var(--accent-primary)' : '#3a3a3a'}`,
+                  backgroundColor: posterDragOver ? 'rgba(229, 9, 20, 0.08)' : '#202020',
                   borderRadius: 'var(--radius-md)',
                   padding: '1.5rem',
-                  backgroundColor: '#202020',
-                  textAlign: 'center'
+                  textAlign: 'center',
+                  transition: 'all 0.2s ease'
                 }}
               >
                 <label
@@ -472,10 +495,10 @@ export const AddMoviePage = () => {
                 >
                   <ImageIcon size={28} color="var(--text-muted)" />
                   <span style={{ fontWeight: 500, fontSize: '0.9rem', color: '#ffffff' }}>
-                    {posterPreview ? 'Change Poster Image' : 'Select Poster Image'}
+                    {posterPreview ? 'Change Poster' : posterDragOver ? 'Drop image here' : 'Select or Drag Poster Image'}
                   </span>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    JPG, PNG, WEBP (Standard movie poster 2:3 ratio recommended)
+                    JPG, PNG, WEBP (Standard 2:3 movie ratio)
                   </span>
                   <input
                     type="file"

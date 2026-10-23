@@ -2,9 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { HeroBanner } from '../components/HeroBanner';
 import { FilterBar } from '../components/FilterBar';
 import { MovieGrid } from '../components/MovieGrid';
+import { MovieCard } from '../components/MovieCard';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { movieApi } from '../services/api';
-import { Clapperboard, Sparkles, Layers } from 'lucide-react';
+import { getWatchlist, getAllWatchProgress } from '../services/storage';
+import { Layers, PlayCircle, Bookmark } from 'lucide-react';
 
 export const HomePage = () => {
   const [movies, setMovies] = useState([]);
@@ -14,7 +16,9 @@ export const HomePage = () => {
   // Filter and Search states
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('All');
+  const [showOnlyWatchlist, setShowOnlyWatchlist] = useState(false);
   const [sortBy, setSortBy] = useState('newest');
+  const [watchlist, setWatchlist] = useState(() => getWatchlist());
 
   // Deletion modal state
   const [movieToDelete, setMovieToDelete] = useState(null);
@@ -41,7 +45,11 @@ export const HomePage = () => {
     fetchMovies();
   }, []);
 
-  // Compute unique genres across the collection
+  const handleWatchlistChange = () => {
+    setWatchlist(getWatchlist());
+  };
+
+  // Compute unique genres across collection
   const availableGenres = useMemo(() => {
     const set = new Set();
     movies.forEach((m) => {
@@ -55,9 +63,23 @@ export const HomePage = () => {
     return Array.from(set);
   }, [movies]);
 
+  // Movies that have in-progress watching
+  const continueWatchingMovies = useMemo(() => {
+    const progressStore = getAllWatchProgress();
+    return movies.filter((m) => {
+      const p = progressStore[m._id];
+      return p && p.percentage > 0 && p.percentage < 95;
+    });
+  }, [movies]);
+
   // Frontend search, filter, and sorting
   const filteredMovies = useMemo(() => {
     let result = [...movies];
+
+    // Watchlist filter
+    if (showOnlyWatchlist) {
+      result = result.filter((m) => watchlist.includes(m._id));
+    }
 
     // Search query filter (title, description, genre)
     if (searchQuery.trim()) {
@@ -101,12 +123,10 @@ export const HomePage = () => {
     });
 
     return result;
-  }, [movies, searchQuery, selectedGenre, sortBy]);
+  }, [movies, searchQuery, selectedGenre, sortBy, showOnlyWatchlist, watchlist]);
 
-  // The featured movie is the most recently added or first
   const featuredMovie = movies.length > 0 ? movies[0] : null;
 
-  // Handle deletion confirmation
   const handleDeleteConfirm = async () => {
     if (!movieToDelete) return;
     try {
@@ -124,9 +144,10 @@ export const HomePage = () => {
   const handleResetFilters = () => {
     setSearchQuery('');
     setSelectedGenre('All');
+    setShowOnlyWatchlist(false);
   };
 
-  const isFiltered = searchQuery.trim() !== '' || selectedGenre !== 'All';
+  const isFiltered = searchQuery.trim() !== '' || selectedGenre !== 'All' || showOnlyWatchlist;
 
   return (
     <div>
@@ -150,26 +171,74 @@ export const HomePage = () => {
           </div>
         )}
 
+        {/* Continue Watching Section (Shown when active progress exists and not filtering) */}
+        {!isFiltered && continueWatchingMovies.length > 0 && (
+          <div style={{ marginBottom: '3rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                marginBottom: '1.25rem'
+              }}
+            >
+              <PlayCircle size={22} color="var(--accent-primary)" />
+              <h2
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '1.4rem',
+                  fontWeight: 800,
+                  letterSpacing: '-0.5px'
+                }}
+              >
+                Continue Watching
+              </h2>
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: '1.5rem'
+              }}
+            >
+              {continueWatchingMovies.map((movie) => (
+                <MovieCard
+                  key={`cw-${movie._id}`}
+                  movie={movie}
+                  onDelete={(m) => setMovieToDelete(m)}
+                  onWatchlistChange={handleWatchlistChange}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Section Heading */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.6rem',
+            justifyContent: 'space-between',
             marginBottom: '1.25rem'
           }}
         >
-          <Layers size={22} color="var(--accent-primary)" />
-          <h2
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '1.6rem',
-              fontWeight: 800,
-              letterSpacing: '-0.5px'
-            }}
-          >
-            Explore Library
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            {showOnlyWatchlist ? (
+              <Bookmark size={22} color="var(--accent-primary)" />
+            ) : (
+              <Layers size={22} color="var(--accent-primary)" />
+            )}
+            <h2
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '1.6rem',
+                fontWeight: 800,
+                letterSpacing: '-0.5px'
+              }}
+            >
+              {showOnlyWatchlist ? 'My Watchlist' : 'Explore Library'}
+            </h2>
+          </div>
         </div>
 
         {/* Search, Filter Pills & Sort Controls */}
@@ -178,6 +247,9 @@ export const HomePage = () => {
           onSearchChange={setSearchQuery}
           selectedGenre={selectedGenre}
           onGenreChange={setSelectedGenre}
+          showOnlyWatchlist={showOnlyWatchlist}
+          onToggleWatchlistFilter={() => setShowOnlyWatchlist(!showOnlyWatchlist)}
+          watchlistCount={watchlist.length}
           sortBy={sortBy}
           onSortChange={setSortBy}
           availableGenres={availableGenres}

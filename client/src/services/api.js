@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-// Base API URL is relative so Vite dev server proxy or production server handles it cleanly
-const API_BASE_URL = '/api';
+// Base backend URL: uses VITE_API_URL when deployed (e.g. on Vercel), or relative path locally
+const BACKEND_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : '';
+const API_BASE_URL = `${BACKEND_BASE}/api`;
 
 export const movieApi = {
   // Fetch all movies with optional query parameters (search, genre, sort)
@@ -67,7 +68,7 @@ export const getPosterUrl = (posterPath) => {
   if (posterPath.startsWith('http://') || posterPath.startsWith('https://')) {
     return posterPath;
   }
-  return `/uploads/posters/${posterPath}`;
+  return `${BACKEND_BASE}/uploads/posters/${posterPath}`;
 };
 
 export const getStreamUrl = (movieId) => {
