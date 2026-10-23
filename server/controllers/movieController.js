@@ -9,6 +9,12 @@ import {
   POSTER_DIR,
   VIDEO_DIR
 } from '../utils/fileHelper.js';
+import {
+  isR2Configured,
+  uploadFileToR2,
+  deleteFileFromR2,
+  getR2ObjectStream
+} from '../utils/r2Storage.js';
 
 /**
  * @route   GET /api/movies
@@ -82,11 +88,11 @@ export const getMovieById = async (req, res, next) => {
 
 /**
  * @route   POST /api/movies
- * @desc    Create a new movie entry with uploaded files
+ * @desc    Create a new movie entry with uploaded files (Local or Cloudflare R2)
  */
 export const createMovie = async (req, res, next) => {
   try {
-    const { title, description, releaseYear, genre, runtime } = req.body;
+    const { title, description, releaseYear, genre, runtime, directVideoUrl, directPosterUrl } = req.body;
 
     // Validate title
     if (!title || !title.trim()) {
@@ -97,17 +103,58 @@ export const createMovie = async (req, res, next) => {
       });
     }
 
-    // Validate video file existence
     const videoFile = req.files?.video?.[0];
-    if (!videoFile) {
+    const posterFile = req.files?.poster?.[0];
+
+    // Check if video file or direct URL provided
+    if (!videoFile && !directVideoUrl) {
       cleanupUploadedFiles(req.files);
       return res.status(400).json({
         success: false,
-        error: 'A movie video file is required'
+        error: 'A movie video file or streaming URL is required'
       });
     }
 
-    const posterFile = req.files?.poster?.[0];
+    let finalPosterPath = directPosterUrl || null;
+    let finalVideoPath = directVideoUrl || null;
+    let storageType = directVideoUrl ? 'external' : 'local';
+    let videoSize = videoFile?.size || 0;
+    let videoMimeType = videoFile?.mimetype || 'video/mp4';
+    let videoOriginalName = videoFile?.originalname || '';
+
+    // If Cloudflare R2 is configured and file was uploaded, upload to R2
+    if (videoFile && isR2Configured()) {
+      try {
+        console.log(`[R2] Uploading video to Cloudflare R2: ${videoFile.filename}`);
+        const r2VideoKey = `videos/${videoFile.filename}`;
+        const r2VideoUrl = await uploadFileToR2(videoFile.path, r2VideoKey, videoMimeType);
+        finalVideoPath = r2VideoUrl;
+        storageType = 'r2';
+
+        // Delete temporary local video file after R2 upload
+        deleteFileSafely(videoFile.path);
+
+        // Upload poster to R2 if provided
+        if (posterFile) {
+          console.log(`[R2] Uploading poster to Cloudflare R2: ${posterFile.filename}`);
+          const r2PosterKey = `posters/${posterFile.filename}`;
+          const r2PosterUrl = await uploadFileToR2(posterFile.path, r2PosterKey, posterFile.mimetype || 'image/jpeg');
+          finalPosterPath = r2PosterUrl;
+          deleteFileSafely(posterFile.path);
+        }
+      } catch (r2Error) {
+        console.error('[R2 Upload Error]:', r2Error);
+        cleanupUploadedFiles(req.files);
+        return res.status(500).json({
+          success: false,
+          error: `Cloudflare R2 upload error: ${r2Error.message}`
+        });
+      }
+    } else {
+      // Local disk storage fallback
+      if (posterFile) finalPosterPath = posterFile.filename;
+      if (videoFile) finalVideoPath = videoFile.filename;
+    }
 
     const movieData = {
       title: title.trim(),
@@ -115,18 +162,18 @@ export const createMovie = async (req, res, next) => {
       releaseYear: releaseYear ? parseInt(releaseYear, 10) : undefined,
       genre: genre ? genre.trim() : 'General',
       runtime: runtime ? parseInt(runtime, 10) : undefined,
-      posterPath: posterFile ? posterFile.filename : null,
-      videoPath: videoFile.filename,
-      videoOriginalName: videoFile.originalname,
-      videoMimeType: videoFile.mimetype || 'video/mp4',
-      videoSize: videoFile.size || 0
+      posterPath: finalPosterPath,
+      videoPath: finalVideoPath,
+      videoOriginalName,
+      videoMimeType,
+      videoSize,
+      storageType
     };
 
     let movie;
     try {
       movie = await Movie.create(movieData);
     } catch (dbError) {
-      // Clean up files immediately to prevent orphaned files
       cleanupUploadedFiles(req.files);
       throw dbError;
     }
@@ -155,7 +202,7 @@ export const updateMovie = async (req, res, next) => {
       });
     }
 
-    const { title, description, releaseYear, genre, runtime } = req.body;
+    const { title, description, releaseYear, genre, runtime, directVideoUrl, directPosterUrl } = req.body;
 
     if (title && title.trim()) movie.title = title.trim();
     if (description !== undefined) movie.description = description.trim();
@@ -166,24 +213,46 @@ export const updateMovie = async (req, res, next) => {
     // Handle poster replacement
     const newPoster = req.files?.poster?.[0];
     if (newPoster) {
-      // Safely delete old poster file if existed
-      if (movie.posterPath) {
-        deleteFileSafely(getPosterPath(movie.posterPath));
+      if (isR2Configured()) {
+        const r2PosterKey = `posters/${newPoster.filename}`;
+        const r2PosterUrl = await uploadFileToR2(newPoster.path, r2PosterKey, newPoster.mimetype || 'image/jpeg');
+        // Delete old poster if was in R2
+        if (movie.posterPath && movie.posterPath.includes('posters/')) {
+          deleteFileFromR2(movie.posterPath.split('/').slice(-2).join('/'));
+        }
+        deleteFileSafely(newPoster.path);
+        movie.posterPath = r2PosterUrl;
+      } else {
+        if (movie.posterPath) deleteFileSafely(getPosterPath(movie.posterPath));
+        movie.posterPath = newPoster.filename;
       }
-      movie.posterPath = newPoster.filename;
+    } else if (directPosterUrl) {
+      movie.posterPath = directPosterUrl;
     }
 
     // Handle video replacement
     const newVideo = req.files?.video?.[0];
     if (newVideo) {
-      // Safely delete old video file
-      if (movie.videoPath) {
-        deleteFileSafely(getVideoPath(movie.videoPath));
+      if (isR2Configured()) {
+        const r2VideoKey = `videos/${newVideo.filename}`;
+        const r2VideoUrl = await uploadFileToR2(newVideo.path, r2VideoKey, newVideo.mimetype || 'video/mp4');
+        if (movie.videoPath && movie.videoPath.includes('videos/')) {
+          deleteFileFromR2(movie.videoPath.split('/').slice(-2).join('/'));
+        }
+        deleteFileSafely(newVideo.path);
+        movie.videoPath = r2VideoUrl;
+        movie.storageType = 'r2';
+      } else {
+        if (movie.videoPath) deleteFileSafely(getVideoPath(movie.videoPath));
+        movie.videoPath = newVideo.filename;
+        movie.storageType = 'local';
       }
-      movie.videoPath = newVideo.filename;
       movie.videoOriginalName = newVideo.originalname;
       movie.videoMimeType = newVideo.mimetype || 'video/mp4';
       movie.videoSize = newVideo.size || 0;
+    } else if (directVideoUrl) {
+      movie.videoPath = directVideoUrl;
+      movie.storageType = 'external';
     }
 
     await movie.save();
@@ -212,13 +281,21 @@ export const deleteMovie = async (req, res, next) => {
       });
     }
 
-    // Delete associated files from disk safely
-    if (movie.posterPath) {
-      deleteFileSafely(getPosterPath(movie.posterPath));
+    // Clean up Cloudflare R2 files
+    if (movie.storageType === 'r2' || isR2Configured()) {
+      if (movie.posterPath && movie.posterPath.includes('posters/')) {
+        const posterKey = movie.posterPath.split('/').slice(-2).join('/');
+        await deleteFileFromR2(posterKey);
+      }
+      if (movie.videoPath && movie.videoPath.includes('videos/')) {
+        const videoKey = movie.videoPath.split('/').slice(-2).join('/');
+        await deleteFileFromR2(videoKey);
+      }
     }
-    if (movie.videoPath) {
-      deleteFileSafely(getVideoPath(movie.videoPath));
-    }
+
+    // Clean up local disk files if any existed
+    if (movie.posterPath) deleteFileSafely(getPosterPath(movie.posterPath));
+    if (movie.videoPath) deleteFileSafely(getVideoPath(movie.videoPath));
 
     await Movie.findByIdAndDelete(req.params.id);
 
@@ -233,7 +310,7 @@ export const deleteMovie = async (req, res, next) => {
 
 /**
  * @route   GET /api/movies/:id/stream
- * @desc    Stream video file supporting HTTP range requests for efficient seeking
+ * @desc    Stream video file supporting Cloudflare R2 CDN and HTTP byte-range requests
  */
 export const streamMovie = async (req, res, next) => {
   try {
@@ -245,6 +322,13 @@ export const streamMovie = async (req, res, next) => {
       });
     }
 
+    // If video is a direct CDN link (e.g. Cloudflare R2 Public CDN URL or external URL)
+    if (movie.videoPath.startsWith('http://') || movie.videoPath.startsWith('https://')) {
+      // Redirect to the CDN URL so the browser streams directly from Cloudflare's edge CDN!
+      return res.redirect(302, movie.videoPath);
+    }
+
+    // Local Disk Streaming with HTTP 206 Byte Ranges
     const videoPath = getVideoPath(movie.videoPath);
     if (!fs.existsSync(videoPath)) {
       return res.status(404).json({
@@ -256,22 +340,16 @@ export const streamMovie = async (req, res, next) => {
     const stat = fs.statSync(videoPath);
     const fileSize = stat.size;
     const range = req.headers.range;
-
     const mimeType = movie.videoMimeType || 'video/mp4';
 
     if (range) {
-      // Parse Range header e.g. "bytes=32324-" or "bytes=0-1000"
       const parts = range.replace(/bytes=/, '').split('-');
       const start = parseInt(parts[0], 10);
-      
-      // Default chunk size is ~2MB for smooth responsive streaming
-      const CHUNK_SIZE = 2 * 1024 * 1024;
+      const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunk
       const end = parts[1] ? parseInt(parts[1], 10) : Math.min(start + CHUNK_SIZE, fileSize - 1);
 
       if (start >= fileSize || end >= fileSize || start > end) {
-        res.status(416).set({
-          'Content-Range': `bytes */${fileSize}`
-        });
+        res.status(416).set({ 'Content-Range': `bytes */${fileSize}` });
         return res.end();
       }
 
@@ -286,30 +364,13 @@ export const streamMovie = async (req, res, next) => {
       });
 
       fileStream.pipe(res);
-
-      fileStream.on('error', (streamErr) => {
-        console.error('[Stream Error]', streamErr);
-        if (!res.headersSent) {
-          res.status(500).end();
-        }
-      });
     } else {
-      // Entire file stream when no range is requested
       res.writeHead(200, {
         'Content-Length': fileSize,
         'Content-Type': mimeType,
         'Accept-Ranges': 'bytes'
       });
-
-      const fileStream = fs.createReadStream(videoPath);
-      fileStream.pipe(res);
-
-      fileStream.on('error', (streamErr) => {
-        console.error('[Stream Error]', streamErr);
-        if (!res.headersSent) {
-          res.status(500).end();
-        }
-      });
+      fs.createReadStream(videoPath).pipe(res);
     }
   } catch (error) {
     next(error);
@@ -330,6 +391,11 @@ export const downloadMovie = async (req, res, next) => {
       });
     }
 
+    // If stored on Cloudflare R2 CDN, redirect to download
+    if (movie.videoPath.startsWith('http://') || movie.videoPath.startsWith('https://')) {
+      return res.redirect(302, movie.videoPath);
+    }
+
     const videoPath = getVideoPath(movie.videoPath);
     if (!fs.existsSync(videoPath)) {
       return res.status(404).json({
@@ -338,7 +404,6 @@ export const downloadMovie = async (req, res, next) => {
       });
     }
 
-    // Determine clean, human-friendly download name
     const ext = path.extname(movie.videoPath) || '.mp4';
     const safeTitle = (movie.title || 'movie')
       .replace(/[^a-zA-Z0-9_\-\s]/g, '')
@@ -346,15 +411,7 @@ export const downloadMovie = async (req, res, next) => {
       .replace(/\s+/g, '_');
     const downloadName = `${safeTitle}${ext}`;
 
-    res.download(videoPath, downloadName, (err) => {
-      if (err && !res.headersSent) {
-        console.error('[Download Error]', err.message);
-        res.status(500).json({
-          success: false,
-          error: 'Error downloading file'
-        });
-      }
-    });
+    res.download(videoPath, downloadName);
   } catch (error) {
     next(error);
   }
@@ -362,7 +419,7 @@ export const downloadMovie = async (req, res, next) => {
 
 /**
  * @route   GET /api/movies/stats/overview
- * @desc    Get library statistics (total movies, storage used, genres, etc.)
+ * @desc    Get library statistics
  */
 export const getLibraryStats = async (req, res, next) => {
   try {
@@ -370,8 +427,7 @@ export const getLibraryStats = async (req, res, next) => {
     const totalCount = movies.length;
     const totalBytes = movies.reduce((acc, m) => acc + (m.videoSize || 0), 0);
     const totalRuntimeMinutes = movies.reduce((acc, m) => acc + (m.runtime || 0), 0);
-    
-    // Unique genres
+
     const genreSet = new Set();
     movies.forEach((m) => {
       if (m.genre) {
@@ -391,9 +447,10 @@ export const getLibraryStats = async (req, res, next) => {
         totalStorageGB: (totalBytes / (1024 * 1024 * 1024)).toFixed(2),
         totalRuntimeMinutes,
         genres: Array.from(genreSet),
+        cloudStorageEnabled: isR2Configured(),
         storagePaths: {
-          videos: VIDEO_DIR,
-          posters: POSTER_DIR
+          videos: isR2Configured() ? 'Cloudflare R2 Bucket' : VIDEO_DIR,
+          posters: isR2Configured() ? 'Cloudflare R2 Bucket' : POSTER_DIR
         }
       }
     });

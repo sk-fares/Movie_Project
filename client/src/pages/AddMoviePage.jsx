@@ -8,7 +8,8 @@ import {
   X,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Link as LinkIcon
 } from 'lucide-react';
 import { movieApi, formatBytes } from '../services/api';
 
@@ -38,6 +39,14 @@ export const AddMoviePage = () => {
   const [genre, setGenre] = useState('Action');
   const [customGenre, setCustomGenre] = useState('');
   const [runtime, setRuntime] = useState('');
+
+  // Video Source Toggle ('file' or 'url')
+  const [videoSourceType, setVideoSourceType] = useState('file');
+  const [directVideoUrl, setDirectVideoUrl] = useState('');
+
+  // Poster Source Toggle ('file' or 'url')
+  const [posterSourceType, setPosterSourceType] = useState('file');
+  const [directPosterUrl, setDirectPosterUrl] = useState('');
 
   // Files State
   const [posterFile, setPosterFile] = useState(null);
@@ -115,8 +124,13 @@ export const AddMoviePage = () => {
       return;
     }
 
-    if (!videoFile) {
-      setError('Please select a movie video file to upload.');
+    if (videoSourceType === 'file' && !videoFile) {
+      setError('Please select a movie video file to upload, or switch to URL input.');
+      return;
+    }
+
+    if (videoSourceType === 'url' && !directVideoUrl.trim()) {
+      setError('Please provide a direct CDN or streaming video URL.');
       return;
     }
 
@@ -129,10 +143,17 @@ export const AddMoviePage = () => {
     formData.append('genre', finalGenre);
     if (runtime) formData.append('runtime', runtime);
 
-    if (posterFile) {
+    if (videoSourceType === 'url') {
+      formData.append('directVideoUrl', directVideoUrl.trim());
+    } else if (videoFile) {
+      formData.append('video', videoFile);
+    }
+
+    if (posterSourceType === 'url' && directPosterUrl.trim()) {
+      formData.append('directPosterUrl', directPosterUrl.trim());
+    } else if (posterFile) {
       formData.append('poster', posterFile);
     }
-    formData.append('video', videoFile);
 
     try {
       setUploading(true);
@@ -151,7 +172,7 @@ export const AddMoviePage = () => {
     } catch (err) {
       console.error('Upload failed:', err);
       setError(
-        err.response?.data?.error || err.message || 'Failed to upload movie. Check console or file size.'
+        err.response?.data?.error || err.message || 'Failed to add movie. Check file size or network connection.'
       );
     } finally {
       setUploading(false);
@@ -187,7 +208,7 @@ export const AddMoviePage = () => {
             Add Movie to Library
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            Store and catalog your personal movie file and custom poster art.
+            Upload files directly to cloud storage or attach a direct CDN streaming link.
           </p>
         </div>
 
@@ -220,7 +241,7 @@ export const AddMoviePage = () => {
             <input
               type="text"
               required
-              placeholder="e.g. Inception, The Matrix, Blade Runner 2049"
+              placeholder="e.g. Interstellar, The Dark Knight, Dune"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="form-input"
@@ -256,7 +277,7 @@ export const AddMoviePage = () => {
                 type="number"
                 min="1888"
                 max="2100"
-                placeholder="e.g. 2023"
+                placeholder="e.g. 2024"
                 value={releaseYear}
                 onChange={(e) => setReleaseYear(e.target.value)}
                 className="form-input"
@@ -310,206 +331,298 @@ export const AddMoviePage = () => {
             </div>
           )}
 
-          {/* Video Drag & Drop Upload Box */}
+          {/* Video Source Type Selection */}
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
-            <label className="form-label">
-              Movie Video File <span style={{ color: 'var(--accent-primary)' }}>*</span>
-            </label>
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setVideoDragOver(true);
-              }}
-              onDragLeave={() => setVideoDragOver(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setVideoDragOver(false);
-                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                  processVideo(e.dataTransfer.files[0]);
-                }
-              }}
-              style={{
-                border: `2px dashed ${videoDragOver ? 'var(--accent-primary)' : '#3a3a3a'}`,
-                backgroundColor: videoDragOver ? 'rgba(229, 9, 20, 0.08)' : '#202020',
-                borderRadius: 'var(--radius-md)',
-                padding: '1.75rem',
-                textAlign: 'center',
-                transition: 'all 0.2s ease',
-                position: 'relative'
-              }}
-            >
-              {videoFile ? (
-                <div
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>
+                Movie Video <span style={{ color: 'var(--accent-primary)' }}>*</span>
+              </label>
+              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setVideoSourceType('file')}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.8rem 1rem',
-                    backgroundColor: '#282828',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                    padding: '0.25rem 0.65rem',
+                    borderRadius: '4px',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    backgroundColor: videoSourceType === 'file' ? 'var(--accent-primary)' : 'rgba(255,255,255,0.08)',
+                    color: '#ffffff'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textAlign: 'left' }}>
-                    <Film size={26} color="var(--accent-primary)" />
-                    <div>
-                      <div style={{ fontWeight: 600, color: '#ffffff', wordBreak: 'break-all' }}>
-                        {videoFile.name}
-                      </div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        {formatBytes(videoFile.size)} • {videoFile.type || 'video'}
-                      </div>
-                    </div>
-                  </div>
-                  {!uploading && (
-                    <button
-                      type="button"
-                      onClick={removeVideo}
-                      className="btn-icon"
-                      title="Remove video file"
-                      style={{ color: '#ff6b6b' }}
-                    >
-                      <X size={16} />
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <label
+                  Upload File
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVideoSourceType('url')}
                   style={{
-                    cursor: uploading ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.6rem'
+                    padding: '0.25rem 0.65rem',
+                    borderRadius: '4px',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    backgroundColor: videoSourceType === 'url' ? 'var(--accent-primary)' : 'rgba(255,255,255,0.08)',
+                    color: '#ffffff'
                   }}
                 >
-                  <div
-                    style={{
-                      width: '50px',
-                      height: '50px',
-                      borderRadius: '50%',
-                      backgroundColor: 'rgba(229, 9, 20, 0.15)',
-                      color: 'var(--accent-primary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <Upload size={22} />
-                  </div>
-                  <span style={{ fontWeight: 600, color: '#ffffff' }}>
-                    {videoDragOver ? 'Drop movie video file here' : 'Choose or Drag & Drop Video File'}
-                  </span>
-                  <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                    Supported formats: MP4, MKV, WEBM, MOV, AVI
-                  </span>
-                  <input
-                    type="file"
-                    accept="video/*,.mkv,.mp4,.webm,.mov,.avi"
-                    onChange={handleVideoChange}
-                    style={{ display: 'none' }}
-                    disabled={uploading}
-                  />
-                </label>
-              )}
+                  Direct CDN URL
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* Poster Drag & Drop Upload Box */}
-          <div className="form-group" style={{ marginTop: '1.5rem' }}>
-            <label className="form-label">Cover Poster Image (Optional)</label>
-            <div
-              style={{
-                display: 'flex',
-                gap: '1.5rem',
-                alignItems: 'flex-start',
-                flexWrap: 'wrap'
-              }}
-            >
-              {posterPreview && (
-                <div
-                  style={{
-                    position: 'relative',
-                    width: '120px',
-                    aspectRatio: '2/3',
-                    borderRadius: 'var(--radius-sm)',
-                    overflow: 'hidden',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    flexShrink: 0
-                  }}
-                >
-                  <img src={posterPreview} alt="Poster preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  {!uploading && (
-                    <button
-                      type="button"
-                      onClick={removePoster}
-                      style={{
-                        position: 'absolute',
-                        top: '4px',
-                        right: '4px',
-                        background: 'rgba(0, 0, 0, 0.7)',
-                        borderRadius: '50%',
-                        padding: '4px',
-                        color: '#ff6b6b'
-                      }}
-                      title="Remove poster"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              )}
-
+            {videoSourceType === 'url' ? (
+              <div style={{ position: 'relative' }}>
+                <LinkIcon size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="url"
+                  placeholder="https://cdn.example.com/movies/video.mp4"
+                  value={directVideoUrl}
+                  onChange={(e) => setDirectVideoUrl(e.target.value)}
+                  className="form-input"
+                  style={{ paddingLeft: '2.5rem' }}
+                  disabled={uploading}
+                />
+              </div>
+            ) : (
+              /* Drag & Drop Upload Box */
               <div
                 onDragOver={(e) => {
                   e.preventDefault();
-                  setPosterDragOver(true);
+                  setVideoDragOver(true);
                 }}
-                onDragLeave={() => setPosterDragOver(false)}
+                onDragLeave={() => setVideoDragOver(false)}
                 onDrop={(e) => {
                   e.preventDefault();
-                  setPosterDragOver(false);
+                  setVideoDragOver(false);
                   if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                    processPoster(e.dataTransfer.files[0]);
+                    processVideo(e.dataTransfer.files[0]);
                   }
                 }}
                 style={{
-                  flex: 1,
-                  minWidth: '220px',
-                  border: `2px dashed ${posterDragOver ? 'var(--accent-primary)' : '#3a3a3a'}`,
-                  backgroundColor: posterDragOver ? 'rgba(229, 9, 20, 0.08)' : '#202020',
+                  border: `2px dashed ${videoDragOver ? 'var(--accent-primary)' : '#3a3a3a'}`,
+                  backgroundColor: videoDragOver ? 'rgba(229, 9, 20, 0.08)' : '#202020',
                   borderRadius: 'var(--radius-md)',
-                  padding: '1.5rem',
+                  padding: '1.75rem',
                   textAlign: 'center',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  position: 'relative'
                 }}
               >
-                <label
+                {videoFile ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.8rem 1rem',
+                      backgroundColor: '#282828',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textAlign: 'left' }}>
+                      <Film size={26} color="var(--accent-primary)" />
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#ffffff', wordBreak: 'break-all' }}>
+                          {videoFile.name}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          {formatBytes(videoFile.size)} • {videoFile.type || 'video'}
+                        </div>
+                      </div>
+                    </div>
+                    {!uploading && (
+                      <button
+                        type="button"
+                        onClick={removeVideo}
+                        className="btn-icon"
+                        title="Remove video file"
+                        style={{ color: '#ff6b6b' }}
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <label
+                    style={{
+                      cursor: uploading ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.6rem'
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '50px',
+                        height: '50px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(229, 9, 20, 0.15)',
+                        color: 'var(--accent-primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Upload size={22} />
+                    </div>
+                    <span style={{ fontWeight: 600, color: '#ffffff' }}>
+                      {videoDragOver ? 'Drop movie video file here' : 'Choose or Drag & Drop Video File'}
+                    </span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                      Supported formats: MP4, MKV, WEBM, MOV, AVI
+                    </span>
+                    <input
+                      type="file"
+                      accept="video/*,.mkv,.mp4,.webm,.mov,.avi"
+                      onChange={handleVideoChange}
+                      style={{ display: 'none' }}
+                      disabled={uploading}
+                    />
+                  </label>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Poster Source Type Selection */}
+          <div className="form-group" style={{ marginTop: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>
+                Cover Poster Image (Optional)
+              </label>
+              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosterSourceType('file')}
                   style={{
-                    cursor: uploading ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.5rem'
+                    padding: '0.25rem 0.65rem',
+                    borderRadius: '4px',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    backgroundColor: posterSourceType === 'file' ? 'var(--accent-primary)' : 'rgba(255,255,255,0.08)',
+                    color: '#ffffff'
                   }}
                 >
-                  <ImageIcon size={28} color="var(--text-muted)" />
-                  <span style={{ fontWeight: 500, fontSize: '0.9rem', color: '#ffffff' }}>
-                    {posterPreview ? 'Change Poster' : posterDragOver ? 'Drop image here' : 'Select or Drag Poster Image'}
-                  </span>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    JPG, PNG, WEBP (Standard 2:3 movie ratio)
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    onChange={handlePosterChange}
-                    style={{ display: 'none' }}
-                    disabled={uploading}
-                  />
-                </label>
+                  Upload Image
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPosterSourceType('url')}
+                  style={{
+                    padding: '0.25rem 0.65rem',
+                    borderRadius: '4px',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    backgroundColor: posterSourceType === 'url' ? 'var(--accent-primary)' : 'rgba(255,255,255,0.08)',
+                    color: '#ffffff'
+                  }}
+                >
+                  Image URL
+                </button>
               </div>
             </div>
+
+            {posterSourceType === 'url' ? (
+              <div style={{ position: 'relative' }}>
+                <LinkIcon size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="url"
+                  placeholder="https://images.unsplash.com/photo-xxx.jpg"
+                  value={directPosterUrl}
+                  onChange={(e) => setDirectPosterUrl(e.target.value)}
+                  className="form-input"
+                  style={{ paddingLeft: '2.5rem' }}
+                  disabled={uploading}
+                />
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                {posterPreview && (
+                  <div
+                    style={{
+                      position: 'relative',
+                      width: '120px',
+                      aspectRatio: '2/3',
+                      borderRadius: 'var(--radius-sm)',
+                      overflow: 'hidden',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      flexShrink: 0
+                    }}
+                  >
+                    <img src={posterPreview} alt="Poster preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {!uploading && (
+                      <button
+                        type="button"
+                        onClick={removePoster}
+                        style={{
+                          position: 'absolute',
+                          top: '4px',
+                          right: '4px',
+                          background: 'rgba(0, 0, 0, 0.7)',
+                          borderRadius: '50%',
+                          padding: '4px',
+                          color: '#ff6b6b'
+                        }}
+                        title="Remove poster"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setPosterDragOver(true);
+                  }}
+                  onDragLeave={() => setPosterDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setPosterDragOver(false);
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                      processPoster(e.dataTransfer.files[0]);
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    minWidth: '220px',
+                    border: `2px dashed ${posterDragOver ? 'var(--accent-primary)' : '#3a3a3a'}`,
+                    backgroundColor: posterDragOver ? 'rgba(229, 9, 20, 0.08)' : '#202020',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '1.5rem',
+                    textAlign: 'center',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <label
+                    style={{
+                      cursor: uploading ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    <ImageIcon size={28} color="var(--text-muted)" />
+                    <span style={{ fontWeight: 500, fontSize: '0.9rem', color: '#ffffff' }}>
+                      {posterPreview ? 'Change Poster' : posterDragOver ? 'Drop image here' : 'Select or Drag Poster Image'}
+                    </span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      JPG, PNG, WEBP (Standard 2:3 movie ratio)
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={handlePosterChange}
+                      style={{ display: 'none' }}
+                      disabled={uploading}
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Upload Progress Bar */}
@@ -518,7 +631,7 @@ export const AddMoviePage = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffffff' }}>
                   <Loader2 size={16} className="spin" style={{ color: 'var(--accent-primary)' }} />
-                  Uploading and processing movie files...
+                  Processing movie and uploading to storage...
                 </span>
                 <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>{uploadProgress}%</span>
               </div>

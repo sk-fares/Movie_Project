@@ -28,12 +28,12 @@ const movieSchema = new mongoose.Schema(
       min: [0, 'Runtime must be non-negative']
     },
     posterPath: {
-      type: String, // Filename inside uploads/posters
+      type: String, // Filename inside uploads/posters OR full CDN URL
       default: null
     },
     videoPath: {
-      type: String, // Filename inside uploads/videos
-      required: [true, 'Video file is required']
+      type: String, // Filename inside uploads/videos, R2 key, or direct streaming URL
+      required: [true, 'Video file or streaming URL is required']
     },
     videoOriginalName: {
       type: String,
@@ -46,6 +46,15 @@ const movieSchema = new mongoose.Schema(
     videoSize: {
       type: Number, // Size in bytes
       default: 0
+    },
+    storageType: {
+      type: String,
+      enum: ['local', 'r2', 'external'],
+      default: 'local'
+    },
+    cdnUrl: {
+      type: String,
+      default: null
     }
   },
   {
