@@ -32,10 +32,12 @@ export const MovieRequestsModal = ({ isOpen, onClose }) => {
   const [title, setTitle] = useState('');
   const [releaseYear, setReleaseYear] = useState('');
   const [notes, setNotes] = useState('');
+  const [justAddedId, setJustAddedId] = useState(null);
+  const wishlistRef = React.useRef(null);
 
-  const fetchRequests = async () => {
+  const fetchRequests = async (showLoadingSpinner = false) => {
     try {
-      setLoading(true);
+      if (showLoadingSpinner) setLoading(true);
       const res = await requestApi.getAll();
       if (res.success) {
         setRequests(res.data || []);
@@ -44,13 +46,13 @@ export const MovieRequestsModal = ({ isOpen, onClose }) => {
     } catch (err) {
       console.error('Failed to load requests:', err);
     } finally {
-      setLoading(false);
+      if (showLoadingSpinner) setLoading(false);
     }
   };
 
   useEffect(() => {
     if (isOpen) {
-      fetchRequests();
+      fetchRequests(true);
     }
   }, [isOpen, isAuthenticated]);
 
@@ -73,20 +75,59 @@ export const MovieRequestsModal = ({ isOpen, onClose }) => {
       return;
     }
 
+    const trimmedTitle = title.trim();
+    const currentYear = releaseYear ? parseInt(releaseYear, 10) : null;
+    const currentNotes = notes.trim();
+
     try {
       setSubmitting(true);
       const res = await requestApi.create({
-        title: title.trim(),
-        releaseYear: releaseYear ? parseInt(releaseYear, 10) : null,
-        notes: notes.trim()
+        title: trimmedTitle,
+        releaseYear: currentYear,
+        notes: currentNotes
       });
 
-      if (res.success) {
-        showToast('Movie suggestion submitted! Thank you!', 'success');
+      if (res.success && res.data) {
+        const createdId = res.data._id || `temp-${Date.now()}`;
+        setJustAddedId(createdId);
+
+        // Immediate Live Optimistic Update:
+        const newReq = {
+          _id: createdId,
+          title: res.data.title || trimmedTitle,
+          releaseYear: res.data.releaseYear || currentYear,
+          notes: res.data.notes || currentNotes,
+          username: user?.username || 'You',
+          userId: user?.id || user?._id || '',
+          isOwnRequest: true,
+          status: 'pending',
+          upvotesCount: 1,
+          hasUpvoted: true,
+          createdAt: res.data.createdAt || new Date().toISOString()
+        };
+
+        // Prepend directly to local list without waiting
+        setRequests((prev) => [newReq, ...prev.filter((r) => r._id !== createdId)]);
+        setQuota((prev) => ({
+          ...prev,
+          usedToday: prev.usedToday + 1,
+          remainingToday: Math.max(0, prev.remainingToday - 1)
+        }));
+        setActiveTab('all');
+
         setTitle('');
         setReleaseYear('');
         setNotes('');
-        await fetchRequests();
+
+        showToast(`"${trimmedTitle}" recommended successfully!`, 'success');
+
+        // Scroll to the community wishlist so user sees their new addition instantly
+        setTimeout(() => {
+          wishlistRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 150);
+
+        // Background sync to ensure full server alignment
+        fetchRequests(false);
       }
     } catch (err) {
       const msg = err.response?.data?.error || 'Failed to submit suggestion.';
@@ -381,7 +422,7 @@ export const MovieRequestsModal = ({ isOpen, onClose }) => {
           )}
 
           {/* Community Wishlist Header & Filter Tabs */}
-          <div>
+          <div ref={wishlistRef}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
               <div style={{ fontSize: '0.95rem', fontWeight: 700 }}>
                 Community Recommendations ({requests.length})
@@ -444,14 +485,19 @@ export const MovieRequestsModal = ({ isOpen, onClose }) => {
                         padding: '1rem',
                         borderRadius: 'var(--radius-md)',
                         backgroundColor: '#222222',
-                        border: item.isOwnRequest
+                        border: item._id === justAddedId
+                          ? '1px solid #2ecc71'
+                          : item.isOwnRequest
                           ? '1px solid rgba(229, 9, 20, 0.35)'
                           : '1px solid rgba(255, 255, 255, 0.06)',
+                        boxShadow: item._id === justAddedId
+                          ? '0 0 14px rgba(46, 204, 113, 0.35)'
+                          : 'none',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         gap: '1rem',
-                        transition: 'all 0.2s ease'
+                        transition: 'all 0.3s ease'
                       }}
                     >
                       {/* Left: Movie Info */}
@@ -515,6 +561,21 @@ export const MovieRequestsModal = ({ isOpen, onClose }) => {
                               }}
                             >
                               Your Suggestion
+                            </span>
+                          )}
+                          {item._id === justAddedId && (
+                            <span
+                              style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                padding: '0.12rem 0.5rem',
+                                borderRadius: '4px',
+                                backgroundColor: 'rgba(46, 204, 113, 0.22)',
+                                color: '#2ecc71',
+                                border: '1px solid rgba(46, 204, 113, 0.45)'
+                              }}
+                            >
+                              ✨ Just Recommended!
                             </span>
                           )}
                         </div>

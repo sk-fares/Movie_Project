@@ -86,6 +86,20 @@ export const createRequest = async (req, res, next) => {
       });
     }
 
+    // Check if user already submitted this exact movie title today
+    const existingSameTitle = await MovieRequest.findOne({
+      user: req.user._id,
+      title: { $regex: new RegExp(`^${title.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') },
+      createdAt: { $gte: twentyFourHoursAgo }
+    });
+
+    if (existingSameTitle) {
+      return res.status(400).json({
+        success: false,
+        error: `You have already recommended "${title.trim()}" today! It is listed in the wishlist below.`
+      });
+    }
+
     const newRequest = await MovieRequest.create({
       title: title.trim(),
       releaseYear: releaseYear ? parseInt(releaseYear, 10) : null,
