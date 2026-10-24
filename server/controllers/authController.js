@@ -282,7 +282,7 @@ export const toggleWatchlist = async (req, res, next) => {
  */
 export const seedDefaultOwner = async () => {
   try {
-    const ownerEmail = (process.env.OWNER_EMAIL || 'skfares80@gmail.com').toLowerCase().trim();
+    const ownerEmail = (process.env.OWNER_EMAIL || 'uselessid301@gmail.com').toLowerCase().trim();
     const ownerUsername = (process.env.OWNER_USERNAME || 'owner').trim();
     const ownerPassword = process.env.OWNER_PASSWORD || 'Owner@CineVault2026';
 
