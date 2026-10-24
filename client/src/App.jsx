@@ -3,6 +3,8 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { StatsModal } from './components/StatsModal';
 import { AdminBannersModal } from './components/AdminBannersModal';
+import { MovieRequestsModal } from './components/MovieRequestsModal';
+import { FloatingRequestButton } from './components/FloatingRequestButton';
 import { ToastProvider } from './components/Toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { HomePage } from './pages/HomePage';
@@ -25,6 +27,7 @@ const OwnerRoute = ({ children }) => {
 export function App() {
   const [statsOpen, setStatsOpen] = useState(false);
   const [carouselOpen, setCarouselOpen] = useState(false);
+  const [requestsOpen, setRequestsOpen] = useState(false);
   const location = useLocation();
 
   // Don't render navigation bar or footer in theater mode or auth pages
@@ -40,6 +43,7 @@ export function App() {
             <Navbar
               onOpenStats={() => setStatsOpen(true)}
               onOpenCarouselManager={() => setCarouselOpen(true)}
+              onOpenRequests={() => setRequestsOpen(true)}
             />
           )}
 
@@ -76,6 +80,14 @@ export function App() {
 
           {/* Global Hero Carousel Manager Modal (Owner Only) */}
           <AdminBannersModal isOpen={carouselOpen} onClose={() => setCarouselOpen(false)} />
+
+          {/* Movie Wishlist & Suggestions Modal */}
+          <MovieRequestsModal isOpen={requestsOpen} onClose={() => setRequestsOpen(false)} />
+
+          {/* Floating Suggest Movie Button (Bottom Right) */}
+          {!hideChrome && (
+            <FloatingRequestButton onClick={() => setRequestsOpen(true)} />
+          )}
 
           {/* Footer */}
           {!hideChrome && (

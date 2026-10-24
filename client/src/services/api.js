@@ -93,6 +93,38 @@ export const bannerApi = {
   }
 };
 
+export const requestApi = {
+  // Get all suggestions and remaining daily quota
+  getAll: async () => {
+    const response = await axios.get(`${API_BASE_URL}/requests`);
+    return response.data;
+  },
+
+  // Submit a new movie suggestion (max 2/day per user)
+  create: async (data) => {
+    const response = await axios.post(`${API_BASE_URL}/requests`, data);
+    return response.data;
+  },
+
+  // Toggle upvote on a suggestion
+  toggleUpvote: async (id) => {
+    const response = await axios.post(`${API_BASE_URL}/requests/${id}/upvote`);
+    return response.data;
+  },
+
+  // Delete a suggestion (Owner only)
+  delete: async (id) => {
+    const response = await axios.delete(`${API_BASE_URL}/requests/${id}`);
+    return response.data;
+  },
+
+  // Update status (e.g. mark as 'added' or 'pending') (Owner only)
+  updateStatus: async (id, status) => {
+    const response = await axios.patch(`${API_BASE_URL}/requests/${id}/status`, { status });
+    return response.data;
+  }
+};
+
 export const movieApi = {
   // Fetch all movies with optional query parameters (search, genre, sort)
   getAll: async (params = {}) => {

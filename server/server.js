@@ -10,6 +10,7 @@ import { connectDB } from './config/db.js';
 import movieRoutes from './routes/movieRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import bannerRoutes from './routes/bannerRoutes.js';
+import requestRoutes from './routes/requestRoutes.js';
 import { seedDefaultOwner } from './controllers/authController.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { POSTER_DIR, ensureUploadDirs } from './utils/fileHelper.js';
@@ -46,6 +47,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/movies', movieRoutes);
 app.use('/api/banners', bannerRoutes);
+app.use('/api/requests', requestRoutes);
 
 // In production or when client/dist exists, serve built React frontend
 const clientDist = path.resolve(__dirname, '../client/dist');

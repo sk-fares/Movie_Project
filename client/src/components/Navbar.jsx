@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Clapperboard, Plus, BarChart2, Smartphone, Menu, X, LogIn, LogOut, Shield, User as UserIcon, Sparkles } from 'lucide-react';
+import { Clapperboard, Plus, BarChart2, Smartphone, Menu, X, LogIn, LogOut, Shield, User as UserIcon, Sparkles, Film } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export const Navbar = ({ onOpenStats, onOpenCarouselManager }) => {
+export const Navbar = ({ onOpenStats, onOpenCarouselManager, onOpenRequests }) => {
   const { user, isOwner, isAuthenticated, logout } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -305,6 +305,34 @@ export const Navbar = ({ onOpenStats, onOpenCarouselManager }) => {
                       <span>Carousel Manager</span>
                     </button>
                   )}
+
+                  <button
+                    onClick={() => {
+                      setUserDropdownOpen(false);
+                      if (onOpenRequests) onOpenRequests();
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      color: '#ffffff',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      borderRadius: 'var(--radius-sm)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      marginBottom: '0.25rem'
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <Film size={16} color="var(--accent-primary)" />
+                    <span>Movie Wishlist</span>
+                  </button>
 
                   <button
                     onClick={handleLogout}
