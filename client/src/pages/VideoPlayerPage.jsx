@@ -486,7 +486,7 @@ export const VideoPlayerPage = () => {
       </div>
 
       {/* Resume Playback Prompt Banner */}
-      {resumePrompt && (
+      {!embedUrl && resumePrompt && (
         <div
           style={{
             position: 'absolute',
@@ -528,7 +528,7 @@ export const VideoPlayerPage = () => {
       )}
 
       {/* Buffering Indicator */}
-      {videoBuffering && !playbackError && (
+      {!embedUrl && videoBuffering && !playbackError && (
         <div
           style={{
             position: 'absolute',
@@ -561,7 +561,7 @@ export const VideoPlayerPage = () => {
       )}
 
       {/* Error Overlay */}
-      {playbackError && (
+      {!embedUrl && playbackError && (
         <div
           style={{
             position: 'absolute',
