@@ -13,14 +13,7 @@ export const MovieGrid = ({
   // Loading Skeleton
   if (loading) {
     return (
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-          gap: '1.5rem',
-          marginBottom: '3rem'
-        }}
-      >
+      <div className="movie-grid" style={{ marginBottom: '3rem' }}>
         {Array.from({ length: 8 }).map((_, index) => (
           <div
             key={index}
@@ -144,14 +137,7 @@ export const MovieGrid = ({
 
   // Standard Movie Grid
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-        gap: '1.5rem',
-        marginBottom: '3.5rem'
-      }}
-    >
+    <div className="movie-grid" style={{ marginBottom: '3.5rem' }}>
       {movies.map((movie) => (
         <MovieCard key={movie._id} movie={movie} onDelete={onDelete} />
       ))}

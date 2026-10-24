@@ -161,7 +161,7 @@ export const Navbar = ({ onOpenStats, onOpenCarouselManager, onOpenRequests }) =
           {/* Install App button */}
           <button
             onClick={handleInstallClick}
-            className="btn btn-outline"
+            className="btn btn-outline hide-mobile"
             style={{
               padding: '0.45rem 0.8rem',
               fontSize: '0.8rem',
@@ -172,7 +172,7 @@ export const Navbar = ({ onOpenStats, onOpenCarouselManager, onOpenRequests }) =
             title="Install CineVault on Phone or PC"
           >
             <Smartphone size={14} />
-            <span className="hide-mobile">Install App</span>
+            <span>Install App</span>
           </button>
 
           {/* Add Movie Button — ONLY visible to Owner! */}
@@ -379,74 +379,120 @@ export const Navbar = ({ onOpenStats, onOpenCarouselManager, onOpenRequests }) =
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="btn-icon show-mobile-only"
-            style={{ width: '38px', height: '38px', display: 'none' }}
+            style={{ width: '40px', height: '40px', border: '1px solid rgba(255, 255, 255, 0.12)' }}
+            aria-label="Toggle navigation menu"
           >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer Overlay Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            top: '70px',
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 890
+          }}
+        />
+      )}
+
+      {/* Mobile Drawer Content */}
       {mobileMenuOpen && (
         <div
           style={{
-            backgroundColor: '#181818',
-            borderBottom: '1px solid var(--border-subtle)',
-            padding: '1.25rem 1.5rem',
+            position: 'relative',
+            zIndex: 895,
+            backgroundColor: '#161616',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+            padding: '1.25rem 1.25rem 1.75rem',
             display: 'flex',
             flexDirection: 'column',
-            gap: '1rem'
+            gap: '0.85rem',
+            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.85)',
+            animation: 'fadeIn 0.2s ease'
           }}
         >
           {isAuthenticated && (
-            <div style={{ paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-              <div style={{ fontWeight: 700, color: '#ffffff' }}>{user.username}</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                {user.email} • {isOwner ? 'Owner' : 'Viewer'}
+            <div
+              style={{
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: '#202020',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '0.5rem'
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#ffffff' }}>{user.username}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.email}</div>
               </div>
+              <span
+                style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 800,
+                  padding: '0.2rem 0.55rem',
+                  borderRadius: '999px',
+                  backgroundColor: isOwner ? 'rgba(229, 9, 20, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                  color: isOwner ? '#ff6b6b' : 'var(--text-secondary)',
+                  border: isOwner ? '1px solid rgba(229, 9, 20, 0.4)' : '1px solid rgba(255, 255, 255, 0.15)'
+                }}
+              >
+                {isOwner ? '👑 Owner' : '🍿 Viewer'}
+              </span>
             </div>
           )}
 
           <Link
             to="/"
             onClick={() => setMobileMenuOpen(false)}
-            style={{ color: '#ffffff', fontSize: '1rem', fontWeight: 600 }}
+            style={{
+              padding: '0.75rem 1rem',
+              borderRadius: 'var(--radius-sm)',
+              color: '#ffffff',
+              fontSize: '1rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              backgroundColor: location.pathname === '/' ? 'rgba(255, 255, 255, 0.08)' : 'transparent'
+            }}
           >
-            Home
+            <Film size={18} color="var(--accent-primary)" />
+            <span>Home</span>
           </Link>
 
-          {isOwner && (
-            <Link
-              to="/add"
-              onClick={() => setMobileMenuOpen(false)}
-              style={{ color: 'var(--accent-primary)', fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-            >
-              <Plus size={18} /> Add Movie (Owner)
-            </Link>
-          )}
-
-          {isOwner && (
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                if (onOpenCarouselManager) onOpenCarouselManager();
-              }}
-              style={{
-                color: '#ff9999',
-                fontSize: '1rem',
-                fontWeight: 600,
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <Sparkles size={16} /> Carousel Manager
-            </button>
-          )}
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              if (onOpenRequests) onOpenRequests();
+            }}
+            style={{
+              padding: '0.75rem 1rem',
+              borderRadius: 'var(--radius-sm)',
+              color: '#ffffff',
+              fontSize: '1rem',
+              fontWeight: 600,
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            <Sparkles size={18} color="var(--accent-primary)" />
+            <span>Movie Wishlist & Suggestions</span>
+          </button>
 
           <button
             onClick={() => {
@@ -454,18 +500,22 @@ export const Navbar = ({ onOpenStats, onOpenCarouselManager, onOpenRequests }) =
               onOpenStats();
             }}
             style={{
+              padding: '0.75rem 1rem',
+              borderRadius: 'var(--radius-sm)',
               color: 'var(--text-secondary)',
               fontSize: '1rem',
+              fontWeight: 500,
               textAlign: 'left',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem',
+              gap: '0.75rem',
               background: 'none',
               border: 'none',
               cursor: 'pointer'
             }}
           >
-            <BarChart2 size={16} /> Library Stats
+            <BarChart2 size={18} />
+            <span>Library Overview & Stats</span>
           </button>
 
           <button
@@ -474,63 +524,114 @@ export const Navbar = ({ onOpenStats, onOpenCarouselManager, onOpenRequests }) =
               handleInstallClick();
             }}
             style={{
+              padding: '0.75rem 1rem',
+              borderRadius: 'var(--radius-sm)',
               color: 'var(--text-secondary)',
               fontSize: '1rem',
+              fontWeight: 500,
               textAlign: 'left',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem',
+              gap: '0.75rem',
               background: 'none',
               border: 'none',
               cursor: 'pointer'
             }}
           >
-            <Smartphone size={16} /> Install App on Device
+            <Smartphone size={18} />
+            <span>Install App on Phone</span>
           </button>
+
+          {isOwner && (
+            <>
+              <div style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.08)', margin: '0.25rem 0' }} />
+              <Link
+                to="/add"
+                onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--accent-primary)',
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  backgroundColor: 'rgba(229, 9, 20, 0.1)'
+                }}
+              >
+                <Plus size={18} />
+                <span>Add Movie (Owner)</span>
+              </Link>
+
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (onOpenCarouselManager) onOpenCarouselManager();
+                }}
+                style={{
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius-sm)',
+                  color: '#ff9999',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <Sparkles size={18} />
+                <span>Carousel Manager</span>
+              </button>
+            </>
+          )}
+
+          <div style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.08)', margin: '0.25rem 0' }} />
 
           {isAuthenticated ? (
             <button
               onClick={handleLogout}
               style={{
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius-sm)',
                 color: '#ff6b6b',
                 fontSize: '1rem',
+                fontWeight: 600,
                 textAlign: 'left',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                background: 'none',
+                gap: '0.75rem',
+                background: 'rgba(229, 9, 20, 0.08)',
                 border: 'none',
-                cursor: 'pointer',
-                marginTop: '0.5rem'
+                cursor: 'pointer'
               }}
             >
-              <LogOut size={16} /> Log Out
+              <LogOut size={18} />
+              <span>Log Out</span>
             </button>
           ) : (
             <Link
               to="/login"
               onClick={() => setMobileMenuOpen(false)}
+              className="btn btn-primary"
               style={{
-                color: 'var(--accent-primary)',
+                width: '100%',
+                padding: '0.8rem',
                 fontSize: '1rem',
                 fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
+                marginTop: '0.25rem'
               }}
             >
-              <LogIn size={16} /> Sign In
+              <LogIn size={18} />
+              <span>Sign In</span>
             </Link>
           )}
         </div>
       )}
-
-      <style>{`
-        @media (max-width: 640px) {
-          .hide-mobile { display: none !important; }
-          .show-mobile-only { display: inline-flex !important; }
-        }
-      `}</style>
     </header>
   );
 };

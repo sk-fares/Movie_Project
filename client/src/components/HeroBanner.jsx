@@ -268,11 +268,11 @@ export const HeroBanner = ({ banners = [], movies = [], onOpenAdmin }) => {
           key={`title-${currentIndex}`}
           style={{
             fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(2.4rem, 6vw, 4.2rem)',
+            fontSize: 'clamp(1.75rem, 5.5vw, 4rem)',
             fontWeight: 900,
-            lineHeight: 1.1,
-            marginBottom: '1rem',
-            letterSpacing: '-1.5px',
+            lineHeight: 1.15,
+            marginBottom: '0.85rem',
+            letterSpacing: '-1px',
             textShadow: '0 4px 20px rgba(0, 0, 0, 0.85)',
             animation: 'fadeInUp 0.4s ease'
           }}
@@ -284,10 +284,10 @@ export const HeroBanner = ({ banners = [], movies = [], onOpenAdmin }) => {
         <p
           key={`desc-${currentIndex}`}
           style={{
-            fontSize: '1.05rem',
+            fontSize: '0.98rem',
             color: '#e5e5e5',
-            lineHeight: 1.6,
-            marginBottom: '2rem',
+            lineHeight: 1.55,
+            marginBottom: '1.75rem',
             maxWidth: '650px',
             display: '-webkit-box',
             WebkitLineClamp: 3,
@@ -301,14 +301,14 @@ export const HeroBanner = ({ banners = [], movies = [], onOpenAdmin }) => {
         </p>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.85rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem' }}>
           {currentSlide.watchUrl && (
             <Link
               to={currentSlide.watchUrl}
               className="btn btn-primary"
-              style={{ padding: '0.85rem 2rem', fontSize: '1rem', fontWeight: 700 }}
+              style={{ padding: '0.8rem 1.8rem', fontSize: '0.98rem', fontWeight: 700 }}
             >
-              <Play size={20} fill="#ffffff" />
+              <Play size={18} fill="#ffffff" />
               Watch Now
             </Link>
           )}
@@ -317,9 +317,9 @@ export const HeroBanner = ({ banners = [], movies = [], onOpenAdmin }) => {
             <Link
               to={currentSlide.infoUrl}
               className="btn btn-secondary"
-              style={{ padding: '0.85rem 1.5rem', fontSize: '1rem' }}
+              style={{ padding: '0.8rem 1.4rem', fontSize: '0.98rem' }}
             >
-              <Info size={20} />
+              <Info size={18} />
               More Info
             </Link>
           )}
@@ -328,7 +328,7 @@ export const HeroBanner = ({ banners = [], movies = [], onOpenAdmin }) => {
             <a
               href={currentSlide.downloadUrl}
               className="btn btn-outline"
-              style={{ padding: '0.85rem 1.25rem' }}
+              style={{ padding: '0.8rem 1.1rem' }}
               title="Download Movie"
             >
               <Download size={18} />
@@ -337,11 +337,12 @@ export const HeroBanner = ({ banners = [], movies = [], onOpenAdmin }) => {
         </div>
       </div>
 
-      {/* Manual Slide Navigation Arrows */}
+      {/* Manual Slide Navigation Arrows (Desktop Only) */}
       {slides.length > 1 && (
         <>
           <button
             onClick={handlePrev}
+            className="hide-mobile"
             style={{
               position: 'absolute',
               left: '20px',
@@ -371,6 +372,7 @@ export const HeroBanner = ({ banners = [], movies = [], onOpenAdmin }) => {
 
           <button
             onClick={handleNext}
+            className="hide-mobile"
             style={{
               position: 'absolute',
               right: '20px',
@@ -400,12 +402,13 @@ export const HeroBanner = ({ banners = [], movies = [], onOpenAdmin }) => {
         </>
       )}
 
-      {/* Slide Indicators / Pill Bar (Bottom Right) */}
+      {/* Slide Indicators / Pill Bar */}
       {slides.length > 1 && (
         <div
+          className="hero-indicators"
           style={{
             position: 'absolute',
-            bottom: '25px',
+            bottom: '20px',
             right: '40px',
             zIndex: 10,
             display: 'flex',
@@ -438,6 +441,14 @@ export const HeroBanner = ({ banners = [], movies = [], onOpenAdmin }) => {
       )}
 
       <style>{`
+        @media (max-width: 640px) {
+          .hero-indicators {
+            right: auto !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            bottom: 12px !important;
+          }
+        }
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }

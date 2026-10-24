@@ -11,17 +11,18 @@ export const FloatingRequestButton = ({ onClick }) => {
       onMouseLeave={() => setIsHovered(false)}
       style={{
         position: 'fixed',
-        bottom: '24px',
-        right: '24px',
+        bottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
+        right: 'max(16px, env(safe-area-inset-right, 16px))',
         zIndex: 900,
         display: 'flex',
         alignItems: 'center',
-        gap: '0.6rem',
-        padding: '0.75rem 1.25rem',
+        gap: '0.55rem',
+        padding: '0.65rem 1.15rem',
         borderRadius: '999px',
-        backgroundColor: '#1b1b1b',
+        backgroundColor: 'rgba(27, 27, 27, 0.95)',
+        backdropFilter: 'blur(10px)',
         color: '#ffffff',
-        border: isHovered ? '1px solid var(--accent-primary)' : '1px solid rgba(255, 255, 255, 0.15)',
+        border: isHovered ? '1px solid var(--accent-primary)' : '1px solid rgba(255, 255, 255, 0.18)',
         boxShadow: isHovered
           ? '0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(229, 9, 20, 0.45)'
           : '0 8px 24px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4)',

@@ -139,21 +139,25 @@ export const MovieCard = ({ movie, onDelete, onWatchlistChange }) => {
           <button
             onClick={handleBookmarkToggle}
             style={{
-              width: '28px',
-              height: '28px',
+              width: '34px',
+              height: '34px',
+              minWidth: '34px',
+              minHeight: '34px',
               borderRadius: '50%',
-              backgroundColor: inWatchlist ? 'var(--accent-primary)' : 'rgba(0,0,0,0.6)',
+              backgroundColor: inWatchlist ? 'var(--accent-primary)' : 'rgba(0,0,0,0.65)',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: '1px solid rgba(255,255,255,0.2)',
-              backdropFilter: 'blur(4px)',
-              transition: 'all 0.2s ease'
+              border: '1px solid rgba(255,255,255,0.25)',
+              backdropFilter: 'blur(6px)',
+              transition: 'all 0.2s ease',
+              cursor: 'pointer'
             }}
             title={inWatchlist ? 'Remove from My List' : 'Add to My List'}
+            aria-label={inWatchlist ? 'Remove from My List' : 'Add to My List'}
           >
-            {inWatchlist ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+            {inWatchlist ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
           </button>
         </div>
 
@@ -273,7 +277,7 @@ export const MovieCard = ({ movie, onDelete, onWatchlistChange }) => {
       {/* Card Info Footer */}
       <div
         style={{
-          padding: '0.9rem',
+          padding: '0.75rem 0.85rem',
           backgroundColor: '#1b1b1b',
           flex: 1,
           display: 'flex',
@@ -283,11 +287,11 @@ export const MovieCard = ({ movie, onDelete, onWatchlistChange }) => {
       >
         <h3
           style={{
-            fontSize: '0.95rem',
+            fontSize: '0.92rem',
             fontWeight: 700,
             color: '#ffffff',
             lineHeight: 1.3,
-            marginBottom: '0.35rem',
+            marginBottom: '0.3rem',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis'
@@ -302,14 +306,17 @@ export const MovieCard = ({ movie, onDelete, onWatchlistChange }) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            fontSize: '0.8rem',
-            color: 'var(--text-muted)'
+            fontSize: '0.76rem',
+            color: 'var(--text-muted)',
+            gap: '0.4rem'
           }}
         >
-          <span>{movie.genre || 'General'}</span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {movie.genre || 'General'}
+          </span>
           {movie.runtime && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <Clock size={12} />
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', flexShrink: 0 }}>
+              <Clock size={11} />
               {formatMinutes(movie.runtime)}
             </span>
           )}

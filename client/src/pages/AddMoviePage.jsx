@@ -351,7 +351,7 @@ export const AddMoviePage = () => {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                 gap: '0.75rem',
                 marginBottom: '1rem'
               }}

@@ -232,13 +232,7 @@ export const HomePage = () => {
                 Continue Watching
               </h2>
             </div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                gap: '1.5rem'
-              }}
-            >
+            <div className="movie-grid">
               {continueWatchingMovies.map((movie) => (
                 <MovieCard
                   key={`cw-${movie._id}`}

@@ -69,12 +69,45 @@ img, video {
   width: 100%;
   max-width: var(--container-max-width);
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: 0 1rem;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 641px) {
+  .container {
+    padding: 0 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
   .container {
     padding: 0 2.5rem;
+  }
+}
+
+/* Responsive Netflix-Style Movie Grid */
+.movie-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .movie-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .movie-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .movie-grid {
+    gap: 0.5rem !important;
   }
 }
 
@@ -286,3 +319,53 @@ img, video {
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+/* Mobile Visibility Utilities */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
+  .show-mobile-only {
+    display: inline-flex !important;
+  }
+  
+  /* Prevent iOS Safari auto-zoom on input focus (minimum 16px font-size required) */
+  input, select, textarea, .form-input, .form-select, .form-textarea {
+    font-size: 16px !important;
+  }
+
+  /* Modals on mobile devices */
+  .modal-backdrop {
+    padding: 0.75rem !important;
+    align-items: flex-end !important; /* Slide up bottom sheet or centered */
+  }
+  .modal-content {
+    padding: 1.25rem !important;
+    max-height: 92vh !important;
+    width: 100% !important;
+    border-radius: var(--radius-lg) var(--radius-lg) var(--radius-md) var(--radius-md) !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .show-mobile-only {
+    display: none !important;
+  }
+}
+
+/* Smooth Touch Scrolling & Tap Optimizations */
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+button, a, input, select {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Safe Area Utility */
+.safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+}
+

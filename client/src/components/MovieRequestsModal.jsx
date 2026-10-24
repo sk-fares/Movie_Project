@@ -364,7 +364,7 @@ export const MovieRequestsModal = ({ isOpen, onClose }) => {
                 <span>Suggest a New Movie</span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.75rem' }}>
                 <input
                   type="text"
                   required
@@ -373,7 +373,7 @@ export const MovieRequestsModal = ({ isOpen, onClose }) => {
                   onChange={(e) => setTitle(e.target.value)}
                   className="form-input"
                   disabled={submitting || (!isOwner && quota.remainingToday <= 0)}
-                  style={{ fontSize: '0.88rem' }}
+                  style={{ fontSize: '0.92rem' }}
                 />
                 <input
                   type="number"
@@ -384,7 +384,7 @@ export const MovieRequestsModal = ({ isOpen, onClose }) => {
                   onChange={(e) => setReleaseYear(e.target.value)}
                   className="form-input"
                   disabled={submitting || (!isOwner && quota.remainingToday <= 0)}
-                  style={{ fontSize: '0.88rem' }}
+                  style={{ fontSize: '0.92rem' }}
                 />
               </div>
 

@@ -441,26 +441,28 @@ export const VideoPlayerPage = () => {
             onClick={() => navigate(`/movie/${id}`)}
             className="btn btn-secondary"
             style={{
-              padding: '0.55rem 1rem',
+              padding: '0.55rem 0.9rem',
               borderRadius: '999px',
               backgroundColor: 'rgba(0, 0, 0, 0.6)',
-              border: '1px solid rgba(255, 255, 255, 0.15)'
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              flexShrink: 0
             }}
+            title="Back to Movie Details"
           >
             <ArrowLeft size={18} />
-            <span>Back to Movies</span>
+            <span className="hide-mobile">Back</span>
           </button>
 
-          <div>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', lineHeight: 1.2 }}>
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+            <h1 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ffffff', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {movie?.title || 'Watch Movie'}
             </h1>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.2rem' }}>
               {movie?.releaseYear && (
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{movie.releaseYear}</span>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{movie.releaseYear}</span>
               )}
               {movie?.genre && (
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>• {movie.genre}</span>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>• {movie.genre}</span>
               )}
             </div>
           </div>
@@ -471,7 +473,7 @@ export const VideoPlayerPage = () => {
             href={getDownloadUrl(id)}
             className="btn btn-secondary"
             style={{
-              padding: '0.55rem 1rem',
+              padding: '0.55rem 0.9rem',
               borderRadius: '999px',
               backgroundColor: 'rgba(0, 0, 0, 0.6)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
@@ -480,7 +482,7 @@ export const VideoPlayerPage = () => {
             title="Download video file to device"
           >
             <Download size={16} />
-            <span>Download</span>
+            <span className="hide-mobile">Download</span>
           </a>
         </div>
       </div>
@@ -671,102 +673,107 @@ export const VideoPlayerPage = () => {
           bottom: 0,
           left: 0,
           right: 0,
-          padding: '1.5rem 2rem 1.25rem 2rem',
-          background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)',
+          padding: '1.25rem 1.25rem max(1rem, env(safe-area-inset-bottom, 1rem)) 1.25rem',
+          background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)',
           zIndex: 20,
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.8rem',
+          gap: '0.65rem',
           opacity: showControls ? 1 : 0,
           pointerEvents: showControls ? 'auto' : 'none',
           transition: 'opacity 0.3s ease'
         }}
       >
-        {/* Scrubber Progress Bar */}
+        {/* Scrubber Progress Bar with generous touch target */}
         <div
           onClick={handleSeek}
           style={{
             position: 'relative',
-            height: '6px',
-            backgroundColor: 'rgba(255, 255, 255, 0.25)',
-            borderRadius: '3px',
-            cursor: 'pointer',
-            transition: 'height 0.15s ease'
+            padding: '8px 0',
+            cursor: 'pointer'
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.height = '10px')}
-          onMouseLeave={(e) => (e.currentTarget.style.height = '6px')}
         >
-          {/* Active progress */}
           <div
             style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              bottom: 0,
-              width: `${progressPercent}%`,
-              backgroundColor: 'var(--accent-primary)',
-              borderRadius: '3px'
+              position: 'relative',
+              height: '6px',
+              backgroundColor: 'rgba(255, 255, 255, 0.25)',
+              borderRadius: '3px',
+              transition: 'height 0.15s ease'
             }}
-          />
-          {/* Thumb marker */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: `${progressPercent}%`,
-              transform: 'translate(-50%, -50%)',
-              width: '14px',
-              height: '14px',
-              borderRadius: '50%',
-              backgroundColor: '#ffffff',
-              boxShadow: '0 0 6px rgba(0,0,0,0.6)'
-            }}
-          />
+          >
+            {/* Active progress */}
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: `${progressPercent}%`,
+                backgroundColor: 'var(--accent-primary)',
+                borderRadius: '3px'
+              }}
+            />
+            {/* Thumb marker */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: `${progressPercent}%`,
+                transform: 'translate(-50%, -50%)',
+                width: '14px',
+                height: '14px',
+                borderRadius: '50%',
+                backgroundColor: '#ffffff',
+                boxShadow: '0 0 6px rgba(0,0,0,0.6)'
+              }}
+            />
+          </div>
         </div>
 
         {/* Buttons Row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
           {/* Left Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {/* Play/Pause */}
             <button
               onClick={togglePlay}
               className="btn-icon"
-              style={{ width: '40px', height: '40px', backgroundColor: 'transparent' }}
+              style={{ width: '38px', height: '38px', backgroundColor: 'transparent' }}
               title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
             >
-              {isPlaying ? <Pause size={24} fill="#ffffff" /> : <Play size={24} fill="#ffffff" />}
+              {isPlaying ? <Pause size={22} fill="#ffffff" /> : <Play size={22} fill="#ffffff" />}
             </button>
 
             {/* Seek -10s */}
             <button
               onClick={() => seekBy(-10)}
               className="btn-icon"
-              style={{ width: '36px', height: '36px', backgroundColor: 'transparent' }}
+              style={{ width: '34px', height: '34px', backgroundColor: 'transparent' }}
               title="Seek back 10s (Left Arrow)"
             >
-              <RotateCcw size={20} />
+              <RotateCcw size={18} />
             </button>
 
             {/* Seek +10s */}
             <button
               onClick={() => seekBy(10)}
               className="btn-icon"
-              style={{ width: '36px', height: '36px', backgroundColor: 'transparent' }}
+              style={{ width: '34px', height: '34px', backgroundColor: 'transparent' }}
               title="Seek forward 10s (Right Arrow)"
             >
-              <RotateCw size={20} />
+              <RotateCw size={18} />
             </button>
 
-            {/* Volume Control */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            {/* Volume Control (Slider hidden on mobile) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <button
                 onClick={toggleMute}
                 className="btn-icon"
-                style={{ width: '36px', height: '36px', backgroundColor: 'transparent' }}
+                style={{ width: '34px', height: '34px', backgroundColor: 'transparent' }}
                 title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
               >
-                {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                {isMuted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
               </button>
               <input
                 type="range"
@@ -775,8 +782,9 @@ export const VideoPlayerPage = () => {
                 step="0.05"
                 value={isMuted ? 0 : volume}
                 onChange={(e) => changeVolume(parseFloat(e.target.value))}
+                className="hide-mobile"
                 style={{
-                  width: '75px',
+                  width: '70px',
                   height: '4px',
                   accentColor: 'var(--accent-primary)',
                   cursor: 'pointer'
@@ -785,9 +793,9 @@ export const VideoPlayerPage = () => {
             </div>
 
             {/* Time Display */}
-            <div style={{ fontSize: '0.85rem', color: '#e5e5e5', fontFamily: 'monospace' }}>
+            <div style={{ fontSize: '0.78rem', color: '#e5e5e5', fontFamily: 'monospace' }}>
               <span>{formatTime(currentTime)}</span>
-              <span style={{ color: 'var(--text-muted)', margin: '0 4px' }}>/</span>
+              <span style={{ color: 'var(--text-muted)', margin: '0 3px' }}>/</span>
               <span style={{ color: 'var(--text-secondary)' }}>{formatTime(duration)}</span>
             </div>
           </div>
@@ -931,10 +939,10 @@ export const VideoPlayerPage = () => {
               )}
             </div>
 
-            {/* Picture in Picture */}
+            {/* Picture in Picture (Desktop Only) */}
             <button
               onClick={togglePiP}
-              className="btn-icon"
+              className="btn-icon hide-mobile"
               style={{ width: '36px', height: '36px', backgroundColor: 'transparent' }}
               title="Picture in Picture (P)"
             >

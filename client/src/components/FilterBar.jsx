@@ -41,20 +41,22 @@ export const FilterBar = ({
     >
       {/* Top Controls Row: Search Input, Watchlist Toggle and Sort Selector */}
       <div
+        className="filter-controls-row"
         style={{
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '1rem'
+          gap: '0.85rem'
         }}
       >
         {/* Search Input */}
         <div
           style={{
             position: 'relative',
-            flex: '1 1 300px',
-            maxWidth: '500px'
+            flex: '1 1 260px',
+            width: '100%',
+            minWidth: '220px'
           }}
         >
           <Search
@@ -69,7 +71,7 @@ export const FilterBar = ({
           />
           <input
             type="text"
-            placeholder="Search by movie title, genre, synopsis..."
+            placeholder="Search by title, genre, synopsis..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             style={{
@@ -112,7 +114,7 @@ export const FilterBar = ({
         </div>
 
         {/* Watchlist, Sort, and Count */}
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.65rem' }}>
           {/* My List Filter Button */}
           <button
             onClick={onToggleWatchlistFilter}
@@ -120,9 +122,9 @@ export const FilterBar = ({
               display: 'flex',
               alignItems: 'center',
               gap: '0.45rem',
-              padding: '0.5rem 0.9rem',
+              padding: '0.5rem 0.85rem',
               borderRadius: 'var(--radius-sm)',
-              fontSize: '0.85rem',
+              fontSize: '0.82rem',
               fontWeight: 600,
               backgroundColor: showOnlyWatchlist ? 'rgba(229, 9, 20, 0.2)' : '#1c1c1c',
               color: showOnlyWatchlist ? 'var(--accent-primary)' : 'var(--text-secondary)',
@@ -130,13 +132,13 @@ export const FilterBar = ({
               transition: 'all 0.2s ease'
             }}
           >
-            <Bookmark size={15} />
+            <Bookmark size={14} />
             <span>My List ({watchlistCount})</span>
           </button>
 
           {/* Sort Dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--text-secondary)' }}>
-            <ArrowUpDown size={15} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-secondary)' }}>
+            <ArrowUpDown size={14} />
             <select
               value={sortBy}
               onChange={(e) => onSortChange(e.target.value)}
@@ -145,8 +147,8 @@ export const FilterBar = ({
                 border: '1px solid #303030',
                 borderRadius: 'var(--radius-sm)',
                 color: '#ffffff',
-                padding: '0.5rem 0.75rem',
-                fontSize: '0.85rem',
+                padding: '0.5rem 0.65rem',
+                fontSize: '0.82rem',
                 outline: 'none',
                 cursor: 'pointer'
               }}
@@ -162,10 +164,10 @@ export const FilterBar = ({
 
           <div
             style={{
-              fontSize: '0.85rem',
+              fontSize: '0.8rem',
               color: 'var(--text-muted)',
               backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              padding: '0.45rem 0.8rem',
+              padding: '0.45rem 0.75rem',
               borderRadius: 'var(--radius-sm)',
               border: '1px solid rgba(255, 255, 255, 0.05)'
             }}
@@ -177,6 +179,7 @@ export const FilterBar = ({
 
       {/* Genre Pills Row */}
       <div
+        className="touch-scroll"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -184,7 +187,8 @@ export const FilterBar = ({
           overflowX: 'auto',
           paddingBottom: '0.5rem',
           scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
+          msOverflowStyle: 'none',
+          WebkitOverflowScrolling: 'touch'
         }}
       >
         {combinedGenres.map((genre) => {

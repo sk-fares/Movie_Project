@@ -152,11 +152,12 @@ export const MovieDetailsPage = () => {
 
         {/* Content Layout */}
         <div
+          className="movie-details-layout"
           style={{
             display: 'flex',
             flexDirection: 'row',
             flexWrap: 'wrap',
-            gap: '3rem',
+            gap: '2rem',
             alignItems: 'flex-start'
           }}
         >
@@ -164,7 +165,8 @@ export const MovieDetailsPage = () => {
           <div
             style={{
               width: '100%',
-              maxWidth: '340px',
+              maxWidth: '300px',
+              margin: '0 auto',
               flexShrink: 0,
               borderRadius: 'var(--radius-lg)',
               overflow: 'hidden',
@@ -203,13 +205,13 @@ export const MovieDetailsPage = () => {
           </div>
 
           {/* Right Column: Information & Actions */}
-          <div style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ flex: '1 1 320px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {/* Title */}
             <div>
               <h1
                 style={{
                   fontFamily: 'var(--font-display)',
-                  fontSize: 'clamp(2rem, 4vw, 3.2rem)',
+                  fontSize: 'clamp(1.75rem, 5vw, 3.2rem)',
                   fontWeight: 900,
                   lineHeight: 1.15,
                   letterSpacing: '-1px',
@@ -222,25 +224,25 @@ export const MovieDetailsPage = () => {
               {/* Badges */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', alignItems: 'center' }}>
                 {movie.releaseYear && (
-                  <span className="badge badge-year" style={{ fontSize: '0.85rem', padding: '0.3rem 0.7rem' }}>
-                    <Calendar size={14} style={{ marginRight: '4px' }} />
+                  <span className="badge badge-year" style={{ fontSize: '0.82rem', padding: '0.3rem 0.65rem' }}>
+                    <Calendar size={13} style={{ marginRight: '4px' }} />
                     {movie.releaseYear}
                   </span>
                 )}
                 {movie.genre && (
-                  <span className="badge badge-accent" style={{ fontSize: '0.85rem', padding: '0.3rem 0.7rem' }}>
+                  <span className="badge badge-accent" style={{ fontSize: '0.82rem', padding: '0.3rem 0.65rem' }}>
                     {movie.genre}
                   </span>
                 )}
                 {movie.runtime && (
-                  <span className="badge badge-genre" style={{ fontSize: '0.85rem', padding: '0.3rem 0.7rem' }}>
-                    <Clock size={14} style={{ marginRight: '4px' }} />
+                  <span className="badge badge-genre" style={{ fontSize: '0.82rem', padding: '0.3rem 0.65rem' }}>
+                    <Clock size={13} style={{ marginRight: '4px' }} />
                     {formatMinutes(movie.runtime)}
                   </span>
                 )}
                 {movie.videoSize > 0 && (
-                  <span className="badge badge-genre" style={{ fontSize: '0.85rem', padding: '0.3rem 0.7rem' }}>
-                    <HardDrive size={14} style={{ marginRight: '4px' }} />
+                  <span className="badge badge-genre" style={{ fontSize: '0.82rem', padding: '0.3rem 0.65rem' }}>
+                    <HardDrive size={13} style={{ marginRight: '4px' }} />
                     {formatBytes(movie.videoSize)}
                   </span>
                 )}
@@ -248,20 +250,20 @@ export const MovieDetailsPage = () => {
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
               <Link
                 to={`/watch/${movie._id}`}
                 className="btn btn-primary"
-                style={{ padding: '0.85rem 2rem', fontSize: '1.05rem', fontWeight: 700 }}
+                style={{ padding: '0.85rem 1.8rem', fontSize: '1rem', fontWeight: 700, flex: '1 1 200px' }}
               >
-                <Play size={22} fill="#ffffff" />
+                <Play size={20} fill="#ffffff" />
                 Watch Now
               </Link>
 
               <button
                 onClick={handleWatchlistToggle}
                 className="btn btn-secondary"
-                style={{ padding: '0.85rem 1.4rem' }}
+                style={{ padding: '0.85rem 1.25rem', flex: '1 1 130px' }}
                 title="Add / Remove from My List"
               >
                 {inWatchlist ? <BookmarkCheck size={18} color="var(--accent-primary)" /> : <Bookmark size={18} />}
@@ -271,11 +273,11 @@ export const MovieDetailsPage = () => {
               <a
                 href={getDownloadUrl(movie._id)}
                 className="btn btn-outline"
-                style={{ padding: '0.85rem 1.4rem' }}
+                style={{ padding: '0.85rem 1.25rem', flex: '1 1 110px' }}
                 title="Download original movie video file"
               >
                 <Download size={18} />
-                Download
+                <span>Download</span>
               </a>
 
               {isOwner && (
@@ -385,13 +387,7 @@ export const MovieDetailsPage = () => {
               <Sparkles size={20} color="var(--accent-primary)" />
               <h3 style={{ fontSize: '1.3rem', fontWeight: 800 }}>More Like This</h3>
             </div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                gap: '1.5rem'
-              }}
-            >
+            <div className="movie-grid">
               {relatedMovies.map((relMovie) => (
                 <MovieCard key={relMovie._id} movie={relMovie} />
               ))}
