@@ -62,6 +62,7 @@ export const AddMoviePage = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState(null);
+  const [videoWarning, setVideoWarning] = useState(null);
 
   const processPoster = (file) => {
     if (!file) return;
@@ -86,6 +87,14 @@ export const AddMoviePage = () => {
     if (!hasValidExt && !file.type.startsWith('video/')) {
       setError('Please select a valid movie video file (MP4, MKV, WEBM, MOV, AVI).');
       return;
+    }
+
+    if (file.name.toLowerCase().endsWith('.mkv')) {
+      setVideoWarning(
+        '⚠️ Browser Notice: .mkv files usually contain DTS or AC3 multi-channel audio that web browsers (Chrome, Edge, Safari, iOS, Android) cannot decode in HTML5. For smooth playback without browser decode errors, MP4 format (H.264 / AAC) is strongly recommended.'
+      );
+    } else {
+      setVideoWarning(null);
     }
 
     setVideoFile(file);
@@ -522,6 +531,35 @@ export const AddMoviePage = () => {
                   </label>
                 )}
               </div>
+            )}
+
+            {/* MKV / Codec Warning */}
+            {videoWarning && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.65rem',
+                  padding: '0.85rem 1rem',
+                  backgroundColor: 'rgba(255, 170, 0, 0.12)',
+                  border: '1px solid rgba(255, 170, 0, 0.35)',
+                  borderRadius: 'var(--radius-md)',
+                  color: '#ffc107',
+                  marginTop: '0.75rem',
+                  fontSize: '0.86rem',
+                  lineHeight: 1.45
+                }}
+              >
+                <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <span>{videoWarning}</span>
+              </div>
+            )}
+
+            {/* Cloud Hosting Storage Tip */}
+            {videoSourceType === 'file' && (
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.65rem', lineHeight: 1.4 }}>
+                ℹ️ <strong>Hosting Note:</strong> If hosting on free cloud platforms (like Render Free Tier), local disk storage is temporary and files are wiped on server restart/sleep. For permanent 24/7 streaming for your friends, use the <strong>Cloud / Direct Video URL</strong> option (Archive.org, Cloudinary, etc.)!
+              </p>
             )}
           </div>
 

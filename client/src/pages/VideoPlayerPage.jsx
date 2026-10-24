@@ -321,6 +321,11 @@ export const VideoPlayerPage = () => {
   const handleVideoError = (e) => {
     console.error('Video playback error:', e);
     const mediaError = videoRef.current?.error;
+    const isMkv =
+      movie?.videoOriginalName?.toLowerCase().endsWith('.mkv') ||
+      movie?.videoPath?.toLowerCase().endsWith('.mkv') ||
+      movie?.videoMimeType?.includes('matroska');
+
     let message = 'Failed to play video. The file might be corrupted or in an unsupported codec.';
     if (mediaError) {
       switch (mediaError.code) {
@@ -331,10 +336,18 @@ export const VideoPlayerPage = () => {
           message = 'A network error caused the video download to fail.';
           break;
         case mediaError.MEDIA_ERR_DECODE:
-          message = 'The video could not be decoded. Your browser might not support this specific video/audio codec.';
+          message = isMkv
+            ? 'The video could not be decoded. Web browsers cannot decode .mkv or DTS/AC3 audio tracks natively. Please convert or re-upload as an MP4 (H.264 / AAC) file.'
+            : 'The video could not be decoded. Your browser might not support this specific video or audio codec.';
           break;
         case mediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-          message = 'Video source not supported or video file could not be found on the server.';
+          if (isMkv) {
+            message = 'Browser codec not supported: Web browsers (Chrome, Edge, Safari, iOS) cannot play .mkv video containers. Please re-upload as standard .mp4, or provide a direct MP4 streaming link.';
+          } else if (movie?.storageType === 'local') {
+            message = 'Video file not found on server storage. If hosted on a free cloud platform (like Render), local files are temporary and cleared on sleep. Please use a permanent Direct Video URL (Archive.org, Cloudinary, etc.).';
+          } else {
+            message = 'Video source not supported or video file could not be found.';
+          }
           break;
         default:
           break;

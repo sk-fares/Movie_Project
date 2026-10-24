@@ -18,12 +18,16 @@ export const HeroBanner = ({ banners = [], movies = [], onOpenAdmin }) => {
       return banners.map((b) => {
         const movieObj = b.movie && typeof b.movie === 'object' ? b.movie : null;
         const movieId = movieObj ? movieObj._id : b.movie;
+        let formattedImage = b.imageUrl;
+        if (formattedImage && !formattedImage.startsWith('http://') && !formattedImage.startsWith('https://')) {
+          formattedImage = getPosterUrl(formattedImage.replace(/^\/?uploads\/posters\//, ''));
+        }
         return {
           id: b._id,
           title: b.title,
           tagline: b.tagline || 'Featured',
           description: b.description || (movieObj ? movieObj.description : ''),
-          imageUrl: b.imageUrl,
+          imageUrl: formattedImage,
           watchUrl: b.linkUrl || (movieId ? `/watch/${movieId}` : null),
           infoUrl: movieId ? `/movie/${movieId}` : null,
           downloadUrl: movieId ? getDownloadUrl(movieId) : null
@@ -163,6 +167,16 @@ export const HeroBanner = ({ banners = [], movies = [], onOpenAdmin }) => {
         userSelect: 'none'
       }}
     >
+      {/* Ambient Cinema Gradient Backdrop (shows if image fails or is loading) */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'radial-gradient(ellipse at 75% 35%, rgba(229, 9, 20, 0.22) 0%, rgba(26, 26, 26, 0.95) 60%, #141414 100%)',
+          zIndex: 0
+        }}
+      />
+
       {/* Background Images Layer with smooth transition */}
       {slides.map((slide, idx) => {
         const isCurrent = idx === currentIndex;
