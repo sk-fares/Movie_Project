@@ -32,6 +32,28 @@ const QUALITY_OPTIONS = [
   { label: '360p Low', value: '360p' }
 ];
 
+export const getEmbedPlayerUrl = (url) => {
+  if (!url || typeof url !== 'string') return null;
+  // Google Drive preview embed
+  const gdriveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (gdriveMatch && gdriveMatch[1]) {
+    return `https://drive.google.com/file/d/${gdriveMatch[1]}/preview`;
+  }
+  // Archive.org details -> embed
+  if (url.includes('archive.org/details/')) {
+    return url.replace('archive.org/details/', 'archive.org/embed/');
+  }
+  if (url.includes('archive.org/embed/')) {
+    return url;
+  }
+  // YouTube embed
+  const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  if (ytMatch && ytMatch[1]) {
+    return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?autoplay=1`;
+  }
+  return null;
+};
+
 export const VideoPlayerPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -376,6 +398,7 @@ export const VideoPlayerPage = () => {
     );
   }
 
+  const embedUrl = movie?.videoPath ? getEmbedPlayerUrl(movie.videoPath) : null;
   const streamUrl = getStreamUrl(id, quality);
   const progressPercent = duration ? (currentTime / duration) * 100 : 0;
 
@@ -585,8 +608,27 @@ export const VideoPlayerPage = () => {
         </div>
       )}
 
-      {/* Native HTML5 Video Element */}
-      <video
+      {/* Video Stream: Embed Player (Google Drive / Archive.org) or Native HTML5 Video */}
+      {embedUrl ? (
+        <iframe
+          src={embedUrl}
+          title={movie?.title || 'Video Player'}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+          allowFullScreen
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            backgroundColor: '#000000',
+            zIndex: 5
+          }}
+        />
+      ) : (
+        <>
+          {/* Native HTML5 Video Element */}
+          <video
         ref={videoRef}
         src={streamUrl}
         autoPlay
@@ -911,6 +953,8 @@ export const VideoPlayerPage = () => {
           </div>
         </div>
       </div>
+    </>
+  )}
 
       <style>{`
         @keyframes spin {

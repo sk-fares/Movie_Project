@@ -376,7 +376,7 @@ export const AddMoviePage = () => {
                 }}
               >
                 <Cloud size={18} color={videoSourceType === 'url' ? 'var(--accent-primary)' : 'currentColor'} />
-                <span>Cloudinary / Direct Video URL</span>
+                <span>Google Drive / Cloud URL</span>
               </button>
 
               <button
@@ -415,20 +415,20 @@ export const AddMoviePage = () => {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: '#ffffff', fontWeight: 600, fontSize: '0.9rem' }}>
                   <Link2 size={16} color="var(--accent-primary)" />
-                  <span>Paste Cloudinary or Streaming URL:</span>
+                  <span>Paste Google Drive, Archive.org, or Direct Video URL:</span>
                 </div>
                 <input
                   type="url"
                   required={videoSourceType === 'url'}
-                  placeholder="e.g. https://res.cloudinary.com/your-name/video/upload/v12345/movie.mp4"
+                  placeholder="e.g. https://drive.google.com/file/d/... or Archive.org link"
                   value={directVideoUrl}
                   onChange={(e) => setDirectVideoUrl(e.target.value)}
                   className="form-input"
                   style={{ fontSize: '0.95rem', padding: '0.85rem 1rem' }}
                   disabled={uploading}
                 />
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.6rem' }}>
-                  💡 Paste the link you copied from Cloudinary. It streams with zero server lag!
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.6rem', lineHeight: 1.45 }}>
+                  💡 <strong>Recommended for large movies:</strong> Upload your multi-GB movie (including <code>.mkv</code>) to <strong>Google Drive</strong>, set sharing to <em>"Anyone with link can view"</em>, and paste the link here! It streams in full HD with zero server lag and never gets deleted.
                 </p>
               </div>
             ) : (
