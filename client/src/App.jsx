@@ -9,7 +9,7 @@ import { InviteGateModal } from './components/InviteGateModal';
 import { FloatingRequestButton } from './components/FloatingRequestButton';
 import { ToastProvider } from './components/Toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { InviteProvider } from './context/InviteContext';
+import { InviteProvider, useInvite } from './context/InviteContext';
 import { HomePage } from './pages/HomePage';
 import { MovieDetailsPage } from './pages/MovieDetailsPage';
 import { VideoPlayerPage } from './pages/VideoPlayerPage';
@@ -27,12 +27,20 @@ const OwnerRoute = ({ children }) => {
   return children;
 };
 
-export function App() {
+// Main App Layout - only mounts protected pages once invite gate is unlocked
+const AppContent = () => {
+  const { isGateOpen } = useInvite();
   const [statsOpen, setStatsOpen] = useState(false);
   const [carouselOpen, setCarouselOpen] = useState(false);
   const [requestsOpen, setRequestsOpen] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
   const location = useLocation();
+
+  // If gate is not open, ONLY show the Invite Gate Modal.
+  // This prevents pages from firing background API calls before having a valid invite pass!
+  if (!isGateOpen) {
+    return <InviteGateModal />;
+  }
 
   // Don't render navigation bar or footer in theater mode or auth pages
   const isWatchPage = location.pathname.startsWith('/watch/');
@@ -40,101 +48,104 @@ export function App() {
   const hideChrome = isWatchPage || isAuthPage;
 
   return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {!hideChrome && (
+        <Navbar
+          onOpenStats={() => setStatsOpen(true)}
+          onOpenCarouselManager={() => setCarouselOpen(true)}
+          onOpenRequests={() => setRequestsOpen(true)}
+          onOpenInvites={() => setInvitesOpen(true)}
+        />
+      )}
+
+      <main style={{ flex: 1 }}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/movie/:id" element={<MovieDetailsPage />} />
+          <Route path="/watch/:id" element={<VideoPlayerPage />} />
+          <Route
+            path="/add"
+            element={
+              <OwnerRoute>
+                <AddMoviePage />
+              </OwnerRoute>
+            }
+          />
+          <Route
+            path="/edit/:id"
+            element={
+              <OwnerRoute>
+                <EditMoviePage />
+              </OwnerRoute>
+            }
+          />
+          {/* Catch-all redirect */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+
+      {/* Global Library Statistics Modal */}
+      <StatsModal isOpen={statsOpen} onClose={() => setStatsOpen(false)} />
+
+      {/* Global Hero Carousel Manager Modal (Owner Only) */}
+      <AdminBannersModal isOpen={carouselOpen} onClose={() => setCarouselOpen(false)} />
+
+      {/* Global Invite Codes Manager Modal (Owner Only) */}
+      <AdminInvitesModal isOpen={invitesOpen} onClose={() => setInvitesOpen(false)} />
+
+      {/* Movie Wishlist & Suggestions Modal */}
+      <MovieRequestsModal isOpen={requestsOpen} onClose={() => setRequestsOpen(false)} />
+
+      {/* Floating Suggest Movie Button (Bottom Right) */}
+      {!hideChrome && (
+        <FloatingRequestButton onClick={() => setRequestsOpen(true)} />
+      )}
+
+      {/* Footer */}
+      {!hideChrome && (
+        <footer
+          style={{
+            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            padding: '2.5rem 0',
+            backgroundColor: '#0e0e0e',
+            color: 'var(--text-muted)',
+            fontSize: '0.85rem'
+          }}
+        >
+          <div
+            className="container"
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem'
+            }}
+          >
+            <div>
+              <span style={{ fontWeight: 700, color: '#ffffff' }}>CineVault</span> — Personal Movie Library &
+              Streaming System
+            </div>
+            <div>Single-user private edition • PWA Ready • Role Protected</div>
+          </div>
+        </footer>
+      )}
+    </div>
+  );
+};
+
+export function App() {
+  return (
     <AuthProvider>
       <InviteProvider>
         <ToastProvider>
-          {/* Global 7-Day Invite Gate Overlay (Blocks access to entire site without active invite pass) */}
-          <InviteGateModal />
-
-          <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-            {!hideChrome && (
-              <Navbar
-                onOpenStats={() => setStatsOpen(true)}
-                onOpenCarouselManager={() => setCarouselOpen(true)}
-                onOpenRequests={() => setRequestsOpen(true)}
-                onOpenInvites={() => setInvitesOpen(true)}
-              />
-            )}
-
-          <main style={{ flex: 1 }}>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/movie/:id" element={<MovieDetailsPage />} />
-              <Route path="/watch/:id" element={<VideoPlayerPage />} />
-              <Route
-                path="/add"
-                element={
-                  <OwnerRoute>
-                    <AddMoviePage />
-                  </OwnerRoute>
-                }
-              />
-              <Route
-                path="/edit/:id"
-                element={
-                  <OwnerRoute>
-                    <EditMoviePage />
-                  </OwnerRoute>
-                }
-              />
-              {/* Catch-all redirect */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
-
-          {/* Global Library Statistics Modal */}
-          <StatsModal isOpen={statsOpen} onClose={() => setStatsOpen(false)} />
-
-          {/* Global Hero Carousel Manager Modal (Owner Only) */}
-          <AdminBannersModal isOpen={carouselOpen} onClose={() => setCarouselOpen(false)} />
-
-          {/* Global Invite Codes Manager Modal (Owner Only) */}
-          <AdminInvitesModal isOpen={invitesOpen} onClose={() => setInvitesOpen(false)} />
-
-          {/* Movie Wishlist & Suggestions Modal */}
-          <MovieRequestsModal isOpen={requestsOpen} onClose={() => setRequestsOpen(false)} />
-
-          {/* Floating Suggest Movie Button (Bottom Right) */}
-          {!hideChrome && (
-            <FloatingRequestButton onClick={() => setRequestsOpen(true)} />
-          )}
-
-          {/* Footer */}
-          {!hideChrome && (
-            <footer
-              style={{
-                borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-                padding: '2.5rem 0',
-                backgroundColor: '#0e0e0e',
-                color: 'var(--text-muted)',
-                fontSize: '0.85rem'
-              }}
-            >
-              <div
-                className="container"
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '1rem'
-                }}
-              >
-                <div>
-                  <span style={{ fontWeight: 700, color: '#ffffff' }}>CineVault</span> — Personal Movie Library &
-                  Streaming System
-                </div>
-                <div>Single-user private edition • PWA Ready • Role Protected</div>
-              </div>
-            </footer>
-          )}
-        </div>
-      </ToastProvider>
-    </InviteProvider>
-  </AuthProvider>
-);
+          <AppContent />
+        </ToastProvider>
+      </InviteProvider>
+    </AuthProvider>
+  );
 }
 
 export default App;

@@ -8,10 +8,12 @@ import { AdminBannersModal } from '../components/AdminBannersModal';
 import { movieApi, bannerApi } from '../services/api';
 import { getWatchlist, getAllWatchProgress } from '../services/storage';
 import { useAuth } from '../context/AuthContext';
+import { useInvite } from '../context/InviteContext';
 import { Layers, PlayCircle, Bookmark } from 'lucide-react';
 
 export const HomePage = () => {
   const { user, isOwner } = useAuth();
+  const { isGateOpen } = useInvite();
   const [movies, setMovies] = useState([]);
   const [banners, setBanners] = useState([]);
   const [adminBannersOpen, setAdminBannersOpen] = useState(false);
@@ -59,9 +61,11 @@ export const HomePage = () => {
   };
 
   useEffect(() => {
-    fetchMovies();
-    fetchBanners();
-  }, []);
+    if (isGateOpen) {
+      fetchMovies();
+      fetchBanners();
+    }
+  }, [isGateOpen]);
 
   const handleWatchlistChange = () => {
     setLocalWatchlist(getWatchlist());
