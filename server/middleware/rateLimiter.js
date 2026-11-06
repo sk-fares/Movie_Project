@@ -25,22 +25,6 @@ export const apiLimiter = rateLimit({
 });
 
 /**
- * Invite Code Validation Rate Limiter
- * Blocks brute-force guessing of invite codes.
- * Max 15 attempts per 15 minutes per IP.
- */
-export const inviteValidateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 15,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    error: 'Too many invite verification attempts. For security, please wait 15 minutes before trying again.'
-  }
-});
-
-/**
  * Authentication Rate Limiter (Login & Register)
  * Prevents credential brute-forcing and spam registrations.
  * Max 15 attempts per 15 minutes per IP.

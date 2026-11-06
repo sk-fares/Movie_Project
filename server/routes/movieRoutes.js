@@ -11,28 +11,27 @@ import {
 } from '../controllers/movieController.js';
 import { uploadMovieMedia } from '../middleware/upload.js';
 import { verifyToken, requireOwner } from '../middleware/auth.js';
-import { verifyInviteOrAuth } from '../middleware/inviteAuth.js';
 
 const router = express.Router();
 
 // Stats route (placed before :id route so it doesn't get treated as an ID)
-router.get('/stats/overview', verifyInviteOrAuth, getLibraryStats);
+router.get('/stats/overview', getLibraryStats);
 
 // Movie collection routes
-// Requires active invite pass or login to browse; Owner only to create
+// Public can browse movies, only Owner can add new movies
 router.route('/')
-  .get(verifyInviteOrAuth, getAllMovies)
+  .get(getAllMovies)
   .post(verifyToken, requireOwner, uploadMovieMedia, createMovie);
 
 // Single movie routes
-// Requires active invite pass or login to view details; Owner only to edit or delete
+// Public can view movie details, only Owner can edit or delete
 router.route('/:id')
-  .get(verifyInviteOrAuth, getMovieById)
+  .get(getMovieById)
   .put(verifyToken, requireOwner, uploadMovieMedia, updateMovie)
   .delete(verifyToken, requireOwner, deleteMovie);
 
-// Streaming and Download routes (Protected by invite code / login)
-router.get('/:id/stream', verifyInviteOrAuth, streamMovie);
-router.get('/:id/download', verifyInviteOrAuth, downloadMovie);
+// Streaming and Download routes
+router.get('/:id/stream', streamMovie);
+router.get('/:id/download', downloadMovie);
 
 export default router;

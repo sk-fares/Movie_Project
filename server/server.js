@@ -11,9 +11,7 @@ import movieRoutes from './routes/movieRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import bannerRoutes from './routes/bannerRoutes.js';
 import requestRoutes from './routes/requestRoutes.js';
-import inviteRoutes from './routes/inviteRoutes.js';
 import { seedDefaultOwner } from './controllers/authController.js';
-import { seedDefaultInviteCode } from './controllers/inviteController.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { POSTER_DIR, ensureUploadDirs } from './utils/fileHelper.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
@@ -57,7 +55,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/movies', movieRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/requests', requestRoutes);
-app.use('/api/invites', inviteRoutes);
 
 // In production or when client/dist exists, serve built React frontend
 const clientDist = path.resolve(__dirname, '../client/dist');
@@ -89,7 +86,6 @@ const startServer = async () => {
   try {
     await connectDB();
     await seedDefaultOwner();
-    await seedDefaultInviteCode();
     app.listen(PORT, () => {
       console.log(`[CineVault Server] Running on port ${PORT}`);
     });

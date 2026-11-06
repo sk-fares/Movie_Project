@@ -4,21 +4,13 @@ import axios from 'axios';
 const BACKEND_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : '';
 const API_BASE_URL = `${BACKEND_BASE}/api`;
 
-// Automatically attach stored JWT token and active 7-day invite pass to all API requests
+// Automatically attach stored JWT token to all API requests
 axios.interceptors.request.use(
   (config) => {
     try {
       const token = localStorage.getItem('cinevault_token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-      }
-
-      const inviteRaw = localStorage.getItem('cinevault_invite_pass');
-      if (inviteRaw) {
-        const pass = JSON.parse(inviteRaw);
-        if (pass && pass.code) {
-          config.headers['x-invite-code'] = pass.code;
-        }
       }
     } catch {}
     return config;
@@ -191,52 +183,6 @@ export const movieApi = {
   }
 };
 
-export const inviteApi = {
-  // Validate invite code entered by visitor (7 days access)
-  validate: async (code) => {
-    const response = await axios.post(`${API_BASE_URL}/invites/validate`, { code });
-    return response.data;
-  },
-
-  // Get all invite codes (Owner only)
-  getAll: async () => {
-    const response = await axios.get(`${API_BASE_URL}/invites`);
-    return response.data;
-  },
-
-  // Create a new invite code (Owner only)
-  create: async (data) => {
-    const response = await axios.post(`${API_BASE_URL}/invites`, data);
-    return response.data;
-  },
-
-  // Update invite code properties (Owner only)
-  update: async (id, data) => {
-    const response = await axios.put(`${API_BASE_URL}/invites/${id}`, data);
-    return response.data;
-  },
-
-  // Delete invite code (Owner only)
-  delete: async (id) => {
-    const response = await axios.delete(`${API_BASE_URL}/invites/${id}`);
-    return response.data;
-  }
-};
-
-// Helper to retrieve active invite code for media streaming/downloads
-const getActiveInviteCode = () => {
-  try {
-    const raw = localStorage.getItem('cinevault_invite_pass');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && parsed.code && (!parsed.expiresAt || Date.now() < parsed.expiresAt)) {
-        return parsed.code;
-      }
-    }
-  } catch {}
-  return '';
-};
-
 // Media Helpers
 export const getPosterUrl = (posterPath) => {
   if (!posterPath) return null;
@@ -247,22 +193,14 @@ export const getPosterUrl = (posterPath) => {
 };
 
 export const getStreamUrl = (movieId, quality = 'auto') => {
-  const code = getActiveInviteCode();
-  const params = new URLSearchParams();
-  if (quality && quality !== 'auto') {
-    params.append('quality', quality);
+  if (!quality || quality === 'auto') {
+    return `${API_BASE_URL}/movies/${movieId}/stream`;
   }
-  if (code) {
-    params.append('inviteCode', code);
-  }
-  const queryString = params.toString();
-  return `${API_BASE_URL}/movies/${movieId}/stream${queryString ? `?${queryString}` : ''}`;
+  return `${API_BASE_URL}/movies/${movieId}/stream?quality=${quality}`;
 };
 
 export const getDownloadUrl = (movieId) => {
-  const code = getActiveInviteCode();
-  const queryString = code ? `?inviteCode=${encodeURIComponent(code)}` : '';
-  return `${API_BASE_URL}/movies/${movieId}/download${queryString}`;
+  return `${API_BASE_URL}/movies/${movieId}/download`;
 };
 
 export const formatBytes = (bytes) => {

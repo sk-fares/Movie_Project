@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Clapperboard, Plus, BarChart2, Smartphone, Menu, X, LogIn, LogOut, Shield, User as UserIcon, Sparkles, Film, KeyRound } from 'lucide-react';
+import { Clapperboard, Plus, BarChart2, Smartphone, Menu, X, LogIn, LogOut, Shield, User as UserIcon, Sparkles, Film } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useInvite } from '../context/InviteContext';
 
-export const Navbar = ({ onOpenStats, onOpenCarouselManager, onOpenRequests, onOpenInvites }) => {
+export const Navbar = ({ onOpenStats, onOpenCarouselManager, onOpenRequests }) => {
   const { user, isOwner, isAuthenticated, logout } = useAuth();
-  const { hasValidInvite, daysRemaining } = useInvite();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -160,29 +158,6 @@ export const Navbar = ({ onOpenStats, onOpenCarouselManager, onOpenRequests, onO
 
         {/* Right Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* Active 7-Day Invite Pass Indicator (Viewers/Guests) */}
-          {hasValidInvite && !isOwner && (
-            <div
-              className="hide-mobile"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.35rem 0.75rem',
-                borderRadius: 'var(--radius-full)',
-                backgroundColor: 'rgba(34, 197, 94, 0.12)',
-                border: '1px solid rgba(34, 197, 94, 0.3)',
-                color: '#86efac',
-                fontSize: '0.78rem',
-                fontWeight: 700
-              }}
-              title={`Your 7-day invite pass is active. ${daysRemaining} day(s) remaining.`}
-            >
-              <KeyRound size={13} />
-              <span>{daysRemaining}d Pass</span>
-            </div>
-          )}
-
           {/* Install App button */}
           <button
             onClick={handleInstallClick}
@@ -302,63 +277,33 @@ export const Navbar = ({ onOpenStats, onOpenCarouselManager, onOpenRequests, onO
                   </div>
 
                   {isOwner && (
-                    <>
-                      <button
-                        onClick={() => {
-                          setUserDropdownOpen(false);
-                          if (onOpenInvites) onOpenInvites();
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          color: '#ffffff',
-                          fontSize: '0.85rem',
-                          fontWeight: 600,
-                          borderRadius: 'var(--radius-sm)',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          marginBottom: '0.25rem'
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                      >
-                        <KeyRound size={16} color="var(--accent-primary)" />
-                        <span>Invite Codes</span>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setUserDropdownOpen(false);
-                          if (onOpenCarouselManager) onOpenCarouselManager();
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          color: '#ffffff',
-                          fontSize: '0.85rem',
-                          fontWeight: 600,
-                          borderRadius: 'var(--radius-sm)',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          marginBottom: '0.25rem'
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                      >
-                        <Sparkles size={16} color="var(--accent-primary)" />
-                        <span>Carousel Manager</span>
-                      </button>
-                    </>
+                    <button
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        if (onOpenCarouselManager) onOpenCarouselManager();
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        color: '#ffffff',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        borderRadius: 'var(--radius-sm)',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        marginBottom: '0.25rem'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <Sparkles size={16} color="var(--accent-primary)" />
+                      <span>Carousel Manager</span>
+                    </button>
                   )}
 
                   <button
@@ -618,30 +563,6 @@ export const Navbar = ({ onOpenStats, onOpenCarouselManager, onOpenRequests, onO
                 <Plus size={18} />
                 <span>Add Movie (Owner)</span>
               </Link>
-
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  if (onOpenInvites) onOpenInvites();
-                }}
-                style={{
-                  padding: '0.75rem 1rem',
-                  borderRadius: 'var(--radius-sm)',
-                  color: '#ffffff',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <KeyRound size={18} color="var(--accent-primary)" />
-                <span>Invite Codes Manager</span>
-              </button>
 
               <button
                 onClick={() => {
