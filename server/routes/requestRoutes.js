@@ -7,11 +7,12 @@ import {
   updateStatus
 } from '../controllers/requestController.js';
 import { verifyToken, optionalToken, requireOwner } from '../middleware/auth.js';
+import { verifyInviteOrAuth } from '../middleware/inviteAuth.js';
 
 const router = express.Router();
 
-// Public / Optional Auth: View all requests and check quota
-router.get('/', optionalToken, getRequests);
+// View all requests and check quota (requires active invite pass or login)
+router.get('/', verifyInviteOrAuth, getRequests);
 
 // Authenticated: Submit a suggestion (rate-limited to 2/24h)
 router.post('/', verifyToken, createRequest);

@@ -11,9 +11,12 @@ import movieRoutes from './routes/movieRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import bannerRoutes from './routes/bannerRoutes.js';
 import requestRoutes from './routes/requestRoutes.js';
+import inviteRoutes from './routes/inviteRoutes.js';
 import { seedDefaultOwner } from './controllers/authController.js';
+import { seedDefaultInviteCode } from './controllers/inviteController.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { POSTER_DIR, ensureUploadDirs } from './utils/fileHelper.js';
+import { apiLimiter } from './middleware/rateLimiter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,12 +27,18 @@ ensureUploadDirs();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust proxy for rate limiters behind reverse proxies (Render, Railway, Vercel, Nginx)
+app.set('trust proxy', 1);
+
 // Enable Cross-Origin Resource Sharing
 app.use(cors());
 
 // Parse JSON and URL-encoded request bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Apply general API rate limiting to protect CineVault from bots and scraping
+app.use('/api', apiLimiter);
 
 // Serve movie posters statically (never expose raw video files directly)
 app.use('/uploads/posters', express.static(POSTER_DIR));
@@ -48,6 +57,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/movies', movieRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/requests', requestRoutes);
+app.use('/api/invites', inviteRoutes);
 
 // In production or when client/dist exists, serve built React frontend
 const clientDist = path.resolve(__dirname, '../client/dist');
@@ -79,6 +89,7 @@ const startServer = async () => {
   try {
     await connectDB();
     await seedDefaultOwner();
+    await seedDefaultInviteCode();
     app.listen(PORT, () => {
       console.log(`[CineVault Server] Running on port ${PORT}`);
     });

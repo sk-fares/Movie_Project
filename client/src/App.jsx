@@ -4,9 +4,12 @@ import { Navbar } from './components/Navbar';
 import { StatsModal } from './components/StatsModal';
 import { AdminBannersModal } from './components/AdminBannersModal';
 import { MovieRequestsModal } from './components/MovieRequestsModal';
+import { AdminInvitesModal } from './components/AdminInvitesModal';
+import { InviteGateModal } from './components/InviteGateModal';
 import { FloatingRequestButton } from './components/FloatingRequestButton';
 import { ToastProvider } from './components/Toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { InviteProvider } from './context/InviteContext';
 import { HomePage } from './pages/HomePage';
 import { MovieDetailsPage } from './pages/MovieDetailsPage';
 import { VideoPlayerPage } from './pages/VideoPlayerPage';
@@ -28,6 +31,7 @@ export function App() {
   const [statsOpen, setStatsOpen] = useState(false);
   const [carouselOpen, setCarouselOpen] = useState(false);
   const [requestsOpen, setRequestsOpen] = useState(false);
+  const [invitesOpen, setInvitesOpen] = useState(false);
   const location = useLocation();
 
   // Don't render navigation bar or footer in theater mode or auth pages
@@ -37,15 +41,20 @@ export function App() {
 
   return (
     <AuthProvider>
-      <ToastProvider>
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-          {!hideChrome && (
-            <Navbar
-              onOpenStats={() => setStatsOpen(true)}
-              onOpenCarouselManager={() => setCarouselOpen(true)}
-              onOpenRequests={() => setRequestsOpen(true)}
-            />
-          )}
+      <InviteProvider>
+        <ToastProvider>
+          {/* Global 7-Day Invite Gate Overlay (Blocks access to entire site without active invite pass) */}
+          <InviteGateModal />
+
+          <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+            {!hideChrome && (
+              <Navbar
+                onOpenStats={() => setStatsOpen(true)}
+                onOpenCarouselManager={() => setCarouselOpen(true)}
+                onOpenRequests={() => setRequestsOpen(true)}
+                onOpenInvites={() => setInvitesOpen(true)}
+              />
+            )}
 
           <main style={{ flex: 1 }}>
             <Routes>
@@ -80,6 +89,9 @@ export function App() {
 
           {/* Global Hero Carousel Manager Modal (Owner Only) */}
           <AdminBannersModal isOpen={carouselOpen} onClose={() => setCarouselOpen(false)} />
+
+          {/* Global Invite Codes Manager Modal (Owner Only) */}
+          <AdminInvitesModal isOpen={invitesOpen} onClose={() => setInvitesOpen(false)} />
 
           {/* Movie Wishlist & Suggestions Modal */}
           <MovieRequestsModal isOpen={requestsOpen} onClose={() => setRequestsOpen(false)} />
@@ -120,8 +132,9 @@ export function App() {
           )}
         </div>
       </ToastProvider>
-    </AuthProvider>
-  );
+    </InviteProvider>
+  </AuthProvider>
+);
 }
 
 export default App;
